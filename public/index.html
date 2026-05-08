@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport"
+content="width=device-width, initial-scale=1.0">
+
+<title>Voice Call App</title>
+
+<style>
+
+body{
+    margin:0;
+    padding:20px;
+    background:#0f172a;
+    color:white;
+    font-family:Arial;
+}
+
+h1,h2{
+    text-align:center;
+}
+
+input{
+    width:100%;
+    padding:15px;
+    border:none;
+    border-radius:10px;
+    margin-top:10px;
+    box-sizing:border-box;
+}
+
+button{
+    padding:12px;
+    border:none;
+    border-radius:10px;
+    cursor:pointer;
+    margin-top:10px;
+    color:white;
+    font-weight:bold;
+}
+
+.join-btn{
+    width:100%;
+    background:#22c55e;
+}
+
+.call-btn{
+    background:#3b82f6;
+}
+
+.reject-btn{
+    background:#ef4444;
+}
+
+.end-btn{
+    background:#ef4444;
+    width:100%;
+}
+
+.user{
+    background:#1e293b;
+    padding:15px;
+    border-radius:10px;
+    margin-top:10px;
+}
+
+#status{
+    text-align:center;
+    margin-top:20px;
+    font-size:20px;
+}
+
+#incomingCall{
+    display:none;
+    background:#1e293b;
+    padding:20px;
+    border-radius:15px;
+    margin-top:20px;
+    text-align:center;
+}
+
+#callTimer{
+    text-align:center;
+    margin-top:10px;
+    font-size:25px;
+}
+
+.history{
+    background:#1e293b;
+    padding:10px;
+    border-radius:10px;
+    margin-top:10px;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<h1>Anonymous Voice Call</h1>
+
+<input
+id="name"
+placeholder="Enter Your Name"
+/>
+
+<button
+class="join-btn"
+onclick="registerUser()">
+Join
+</button>
+
+<div id="status">
+Offline
+</div>
+
+<div id="callTimer">
+00:00
+</div>
+
+<div id="incomingCall">
+
+<h2 id="callerName">
+Incoming Call
+</h2>
+
+<button
+class="call-btn"
+onclick="acceptCall()">
+Accept
+</button>
+
+<button
+class="reject-btn"
+onclick="rejectCall()">
+Reject
+</button>
+
+</div>
+
+<button
+id="endCallBtn"
+class="end-btn"
+style="display:none;"
+onclick="endCall()">
+End Call
+</button>
+
+<h2>Online Users</h2>
+
+<div id="users"></div>
+
+<h2>Call History</h2>
+
+<div id="history"></div>
+
+<audio
+id="remoteAudio"
+autoplay>
+</audio>
+
+<script src="/socket.io/socket.io.js"></script>
+
+<script>
+
+const socket = io();
+
+let localStream;
+
+let peerConnection;
+
+let currentUser;
+
+let currentUserName;
+
+let incomingOffer;
+
+let callStartTime;
+
+let timerInterval;
+
+const usersDiv =
+document.getElementById("users");
+
+const statusDiv =
+document.getElementById("status");
+
+const incomingCallDiv =
+document.getElementById("incomingCall");
+
+const callerNameDiv =
+document.getElementById("callerName");
+
+const remoteAudio =
+document.getElementById("remoteAudio");
+
+const endCallBtn =
+document.getElementById("endCallBtn");
+
+const historyDiv =
+document.getElementById("history");
+
+const callTimer =
+document.getElementById("callTimer");
+
+const servers = {
+    iceServers:[
+        {
+            urls:"stun:stun.l.google.com:19302"
+        }
+    ]
+};
+
+async function registerUser(){
+
+    const name =
+    document.getElementById("name").value;
+
+    if(!name){
+        alert("Enter Name");
+        return;
+    }
+
+    currentUserName = name;
+
+    localStream =
+    await navigator.mediaDevices
+    .getUserMedia({
+        audio:true
+    });
+
+    socket.emit(
+        "register-user",
+        name
+    );
+
+    statusDiv.innerHTML = "Online";
+
+}
+
+socket.on("users-list",(users)=>{
+
+    usersDiv.innerHTML = "";
+
+    users.forEach((user)=>{
+
+        if(user.socketId !== socket.id){
+
+            usersDiv.innerHTML += `
+            
+            <div class="user">
+
+            <h3>${user.name}</h3>
+
+            <button
+            class="call-btn"
+            onclick="callUser(
+            '${user.socketId}',
+            '${user.name}'
+            )">
+
+            Call
+
+            </button>
+
+            </div>
+            
+            `;
+
+        }
+
+    });
+
+});
+
+function createPeer(){
+
+    peerConnection =
+    new RTCPeerConnection(servers);
+
+    localStream.getTracks()
+    .forEach((track)=>{
+
+        peerConnection.addTrack(
+            track,
+            localStream
+        );
+
+    });
+
+    peerConnection.ontrack = (event)=>{
+
+        remoteAudio.srcObject =
+        event.streams[0];
+
+    };
+
+    peerConnection.onicecandidate =
+    (event)=>{
+
+        if(event.candidate){
+
+            socket.emit(
+                "ice-candidate",
+                {
+                    to:currentUser,
+                    candidate:event.candidate
+                }
+            );
+
+        }
+
+    };
+
+}
+
+async function callUser(
+socketId,
+name
+){
+
+    currentUser = socketId;
+
+    createPeer();
+
+    const offer =
+    await peerConnection.createOffer();
+
+    await peerConnection
+    .setLocalDescription(offer);
+
+    socket.emit("call-user",{
+        to:socketId,
+        offer,
+        callerName:currentUserName
+    });
+
+    statusDiv.innerHTML =
+    `Calling ${name}...`;
+
+}
+
+socket.on("incoming-call",
+({from,offer,callerName})=>{
+
+    currentUser = from;
+
+    incomingOffer = offer;
+
+    incomingCallDiv.style.display =
+    "block";
+
+    callerNameDiv.innerHTML =
+    `${callerName} Calling...`;
+
+});
+
+async function acceptCall(){
+
+    incomingCallDiv.style.display =
+    "none";
+
+    createPeer();
+
+    await peerConnection
+    .setRemoteDescription(
+        new RTCSessionDescription(
+            incomingOffer
+        )
+    );
+
+    const answer =
+    await peerConnection.createAnswer();
+
+    await peerConnection
+    .setLocalDescription(answer);
+
+    socket.emit("answer-call",{
+        to:currentUser,
+        answer
+    });
+
+    startTimer();
+
+    endCallBtn.style.display = "block";
+
+    statusDiv.innerHTML =
+    "Call Connected";
+
+}
+
+function rejectCall(){
+
+    socket.emit("reject-call",{
+        to:currentUser
+    });
+
+    incomingCallDiv.style.display =
+    "none";
+
+    statusDiv.innerHTML =
+    "Call Rejected";
+
+}
+
+socket.on("call-rejected",()=>{
+
+    statusDiv.innerHTML =
+    "Call Rejected";
+
+});
+
+socket.on("call-answered",
+async(answer)=>{
+
+    await peerConnection
+    .setRemoteDescription(
+        new RTCSessionDescription(
+            answer
+        )
+    );
+
+    startTimer();
+
+    endCallBtn.style.display = "block";
+
+    statusDiv.innerHTML =
+    "Call Connected";
+
+});
+
+function startTimer(){
+
+    callStartTime = Date.now();
+
+    timerInterval =
+    setInterval(()=>{
+
+        const diff =
+        Math.floor(
+            (Date.now() -
+            callStartTime)/1000
+        );
+
+        const mins =
+        String(
+            Math.floor(diff/60)
+        ).padStart(2,"0");
+
+        const secs =
+        String(
+            diff%60
+        ).padStart(2,"0");
+
+        callTimer.innerHTML =
+        `${mins}:${secs}`;
+
+    },1000);
+
+}
+
+function endCall(){
+
+    socket.emit("end-call",{
+        to:currentUser
+    });
+
+    saveHistory();
+
+    closeCall();
+
+}
+
+socket.on("call-ended",()=>{
+
+    saveHistory();
+
+    closeCall();
+
+});
+
+function closeCall(){
+
+    if(peerConnection){
+
+        peerConnection.close();
+
+    }
+
+    clearInterval(timerInterval);
+
+    callTimer.innerHTML = "00:00";
+
+    endCallBtn.style.display = "none";
+
+    statusDiv.innerHTML = "Call Ended";
+
+}
+
+async function saveHistory(){
+
+    const duration =
+    callTimer.innerHTML;
+
+    socket.emit(
+        "save-call-history",
+        {
+            callerName:currentUserName,
+            receiverName:"Unknown",
+            duration
+        }
+    );
+
+}
+
+socket.on("call-history",(history)=>{
+
+    historyDiv.innerHTML = "";
+
+    history.forEach((item)=>{
+
+        historyDiv.innerHTML += `
+        
+        <div class="history">
+
+        <h3>
+        ${item.callerName}
+        </h3>
+
+        <p>
+        Duration:
+        ${item.duration}
+        </p>
+
+        </div>
+        
+        `;
+
+    });
+
+});
+
+socket.on("ice-candidate",
+async(candidate)=>{
+
+    try{
+
+        await peerConnection
+        .addIceCandidate(candidate);
+
+    }catch(err){
+
+        console.log(err);
+
+    }
+
+});
+
+</script>
+
+</body>
+
+</html>
