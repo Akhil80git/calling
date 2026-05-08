@@ -1,568 +1,602 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-
 <meta charset="UTF-8">
-
-<meta name="viewport"
-content="width=device-width, initial-scale=1.0">
-
-<title>Voice Call App</title>
-
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VoiceConnect</title>
 <style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#0a0a0f; color:#fff; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; min-height:100vh; overflow-x:hidden; }
 
-body{
-    margin:0;
-    padding:20px;
-    background:#0f172a;
-    color:white;
-    font-family:Arial;
-}
+/* REGISTER SCREEN */
+#registerScreen { display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:100vh; padding:30px; background:radial-gradient(ellipse at top,#1a1a2e 0%,#0a0a0f 70%); }
+.app-logo { width:90px; height:90px; border-radius:28px; background:linear-gradient(135deg,#22c55e,#16a34a); display:flex; align-items:center; justify-content:center; font-size:40px; margin-bottom:24px; box-shadow:0 0 40px rgba(34,197,94,0.4); }
+#registerScreen h1 { font-size:28px; font-weight:700; margin-bottom:8px; }
+#registerScreen p { color:#6b7280; margin-bottom:36px; font-size:15px; }
+.input-group { width:100%; max-width:340px; margin-bottom:16px; }
+.input-group input { width:100%; padding:18px 20px; border:1.5px solid #1f2937; border-radius:16px; background:#111827; color:#fff; font-size:16px; outline:none; transition:border-color 0.2s; }
+.input-group input:focus { border-color:#22c55e; }
+.input-group input::placeholder { color:#4b5563; }
+.join-btn { width:100%; max-width:340px; padding:18px; border:none; border-radius:16px; background:linear-gradient(135deg,#22c55e,#16a34a); color:#fff; font-size:17px; font-weight:700; cursor:pointer; transition:transform 0.1s; box-shadow:0 4px 20px rgba(34,197,94,0.35); }
+.join-btn:active { transform:scale(0.97); }
 
-h1,h2{
-    text-align:center;
-}
+/* MAIN APP */
+#mainApp { display:none; }
+.top-bar { display:flex; align-items:center; justify-content:space-between; padding:20px 20px 10px; border-bottom:1px solid #1f2937; }
+.avatar { width:42px; height:42px; border-radius:50%; background:linear-gradient(135deg,#22c55e,#16a34a); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:17px; }
+.user-name { font-weight:600; font-size:16px; }
+.status-dot { display:inline-block; width:8px; height:8px; border-radius:50%; background:#22c55e; margin-right:5px; box-shadow:0 0 6px #22c55e; }
+.status-label { font-size:12px; color:#6b7280; }
+.notif-btn { width:38px; height:38px; border-radius:12px; background:#1f2937; border:none; color:#9ca3af; font-size:18px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
 
-input{
-    width:100%;
-    padding:15px;
-    border:none;
-    border-radius:10px;
-    margin-top:10px;
-    box-sizing:border-box;
-}
+/* TABS */
+.tabs { display:flex; padding:12px 20px 0; gap:4px; border-bottom:1px solid #1f2937; }
+.tab { flex:1; padding:10px; text-align:center; font-size:14px; font-weight:600; color:#6b7280; cursor:pointer; border-bottom:2px solid transparent; background:none; border-top:none; border-left:none; border-right:none; transition:color 0.2s; }
+.tab.active { color:#22c55e; border-bottom-color:#22c55e; }
+.tab-content { display:none; padding:16px 20px; }
+.tab-content.active { display:block; }
+.section-title { font-size:13px; font-weight:600; color:#6b7280; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:12px; }
 
-button{
-    padding:12px;
-    border:none;
-    border-radius:10px;
-    cursor:pointer;
-    margin-top:10px;
-    color:white;
-    font-weight:bold;
-}
+/* USER CARD */
+.user-card { display:flex; align-items:center; gap:14px; padding:14px; background:#111827; border-radius:16px; margin-bottom:10px; border:1px solid #1f2937; }
+.user-card .avatar { width:48px; height:48px; font-size:19px; flex-shrink:0; }
+.user-card-info { flex:1; }
+.user-card-info .name { font-weight:600; font-size:15px; }
+.user-card-info .online { font-size:12px; color:#22c55e; margin-top:2px; }
+.call-btn-small { width:44px; height:44px; border-radius:50%; background:linear-gradient(135deg,#22c55e,#16a34a); border:none; color:#fff; font-size:20px; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 12px rgba(34,197,94,0.4); }
 
-.join-btn{
-    width:100%;
-    background:#22c55e;
-}
+/* HISTORY */
+.history-item { display:flex; align-items:center; gap:14px; padding:14px; background:#111827; border-radius:16px; margin-bottom:10px; border:1px solid #1f2937; }
+.history-icon { width:42px; height:42px; border-radius:50%; background:#1f2937; display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0; }
+.history-info .name { font-weight:600; font-size:15px; }
+.history-info .dur { font-size:13px; color:#6b7280; margin-top:3px; }
+.history-info .time { font-size:12px; color:#4b5563; margin-top:2px; }
+.empty-state { text-align:center; padding:40px 0; color:#4b5563; }
+.empty-state .icon { font-size:40px; margin-bottom:10px; }
+.empty-state p { font-size:14px; }
 
-.call-btn{
-    background:#3b82f6;
-}
+/* CALLING OVERLAY */
+#callingOverlay { display:none; position:fixed; inset:0; z-index:100; background:linear-gradient(160deg,#0f2027,#203a43,#0f2027); flex-direction:column; align-items:center; justify-content:space-between; padding:80px 30px 60px; }
+#callingOverlay.show { display:flex; }
+.call-avatar-ring { position:relative; width:130px; height:130px; display:flex; align-items:center; justify-content:center; }
+.ring { position:absolute; border-radius:50%; border:2px solid rgba(34,197,94,0.3); animation:ringPulse 1.8s ease-out infinite; }
+.ring:nth-child(1){width:130px;height:130px;animation-delay:0s}
+.ring:nth-child(2){width:175px;height:175px;animation-delay:0.4s}
+.ring:nth-child(3){width:220px;height:220px;animation-delay:0.8s}
+@keyframes ringPulse { 0%{opacity:0.7;transform:scale(0.9)} 100%{opacity:0;transform:scale(1.1)} }
+.call-avatar-big { width:110px; height:110px; border-radius:50%; background:linear-gradient(135deg,#22c55e,#16a34a); display:flex; align-items:center; justify-content:center; font-size:44px; font-weight:700; z-index:1; box-shadow:0 0 30px rgba(34,197,94,0.4); }
+.call-name { font-size:30px; font-weight:700; text-align:center; margin-top:24px; }
+.call-status-text { font-size:16px; color:#9ca3af; text-align:center; margin-top:8px; }
+.call-timer-big { font-size:22px; font-weight:300; color:#22c55e; letter-spacing:2px; }
+.call-actions { display:flex; gap:28px; align-items:center; }
+.action-btn { display:flex; flex-direction:column; align-items:center; gap:8px; cursor:pointer; border:none; background:none; }
+.action-btn .circle { width:64px; height:64px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:26px; transition:transform 0.15s; }
+.action-btn:active .circle { transform:scale(0.9); }
+.action-btn .label { font-size:12px; color:#9ca3af; }
+.mute-btn .circle { background:#1f2937; }
+.speaker-btn .circle { background:#1f2937; }
+.end-call-big .circle { background:#ef4444; box-shadow:0 4px 20px rgba(239,68,68,0.5); }
+.mute-btn.muted .circle { background:#ef4444; }
 
-.reject-btn{
-    background:#ef4444;
-}
+/* INCOMING OVERLAY */
+#incomingOverlay { display:none; position:fixed; inset:0; z-index:200; background:linear-gradient(160deg,#1a0a0a,#2d1515,#1a0a0a); flex-direction:column; align-items:center; justify-content:space-between; padding:80px 30px 70px; animation:slideUp 0.3s ease-out; }
+#incomingOverlay.show { display:flex; }
+@keyframes slideUp { from{transform:translateY(100%);opacity:0} to{transform:translateY(0);opacity:1} }
+.incoming-label { font-size:14px; color:#ef4444; letter-spacing:1px; text-transform:uppercase; margin-bottom:30px; text-align:center; animation:blink 1s ease-in-out infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.4} }
+.incoming-avatar-wrap { position:relative; width:130px; height:130px; margin:0 auto 20px; display:flex; align-items:center; justify-content:center; }
+.incoming-ring { position:absolute; border-radius:50%; border:2px solid rgba(239,68,68,0.4); animation:ringRed 1.4s ease-out infinite; }
+.incoming-ring:nth-child(1){width:130px;height:130px;animation-delay:0s}
+.incoming-ring:nth-child(2){width:175px;height:175px;animation-delay:0.35s}
+.incoming-ring:nth-child(3){width:220px;height:220px;animation-delay:0.7s}
+@keyframes ringRed { 0%{opacity:0.8;transform:scale(0.9)} 100%{opacity:0;transform:scale(1.1)} }
+.incoming-avatar { width:110px; height:110px; border-radius:50%; background:linear-gradient(135deg,#ef4444,#dc2626); display:flex; align-items:center; justify-content:center; font-size:44px; font-weight:700; z-index:1; box-shadow:0 0 30px rgba(239,68,68,0.5); }
+.incoming-name { font-size:30px; font-weight:700; text-align:center; }
+.incoming-sub { font-size:15px; color:#9ca3af; text-align:center; margin-top:6px; }
+.incoming-actions { display:flex; gap:50px; align-items:center; }
+.incoming-action { display:flex; flex-direction:column; align-items:center; gap:10px; cursor:pointer; }
+.incoming-action .circle { width:72px; height:72px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:30px; transition:transform 0.15s; }
+.incoming-action:active .circle { transform:scale(0.9); }
+.decline-btn .circle { background:#ef4444; box-shadow:0 4px 20px rgba(239,68,68,0.5); }
+.accept-btn .circle { background:#22c55e; box-shadow:0 4px 20px rgba(34,197,94,0.5); }
+.incoming-action .label { font-size:13px; color:#9ca3af; }
 
-.end-btn{
-    background:#ef4444;
-    width:100%;
-}
-
-.user{
-    background:#1e293b;
-    padding:15px;
-    border-radius:10px;
-    margin-top:10px;
-}
-
-#status{
-    text-align:center;
-    margin-top:20px;
-    font-size:20px;
-}
-
-#incomingCall{
-    display:none;
-    background:#1e293b;
-    padding:20px;
-    border-radius:15px;
-    margin-top:20px;
-    text-align:center;
-}
-
-#callTimer{
-    text-align:center;
-    margin-top:10px;
-    font-size:25px;
-}
-
-.history{
-    background:#1e293b;
-    padding:10px;
-    border-radius:10px;
-    margin-top:10px;
-}
-
+/* NOTIFICATION BANNER */
+#notifBanner { position:fixed; top:-100px; left:50%; transform:translateX(-50%); background:#1f2937; border:1px solid #374151; border-radius:16px; padding:14px 20px; display:flex; align-items:center; gap:12px; min-width:300px; z-index:300; transition:top 0.4s cubic-bezier(0.34,1.56,0.64,1); box-shadow:0 8px 32px rgba(0,0,0,0.5); white-space:nowrap; }
+#notifBanner.show { top:20px; }
+#notifBanner .notif-icon { font-size:24px; }
+#notifBanner .notif-text .title { font-weight:700; font-size:14px; }
+#notifBanner .notif-text .sub { font-size:12px; color:#9ca3af; margin-top:2px; }
 </style>
-
 </head>
-
 <body>
 
-<h1>Anonymous Voice Call</h1>
-
-<input
-id="name"
-placeholder="Enter Your Name"
-/>
-
-<button
-class="join-btn"
-onclick="registerUser()">
-Join
-</button>
-
-<div id="status">
-Offline
+<!-- IN-APP NOTIFICATION BANNER -->
+<div id="notifBanner">
+  <div class="notif-icon">📞</div>
+  <div class="notif-text">
+    <div class="title" id="notifTitle">Incoming Call</div>
+    <div class="sub" id="notifSub">Someone is calling you</div>
+  </div>
 </div>
 
-<div id="callTimer">
-00:00
+<!-- REGISTER SCREEN -->
+<div id="registerScreen">
+  <div class="app-logo">📞</div>
+  <h1>VoiceConnect</h1>
+  <p>Crystal clear voice calls</p>
+  <div class="input-group">
+    <input id="nameInput" placeholder="Enter your name" maxlength="20" />
+  </div>
+  <button class="join-btn" onclick="registerUser()">Join Now</button>
 </div>
 
-<div id="incomingCall">
+<!-- MAIN APP -->
+<div id="mainApp">
+  <div class="top-bar">
+    <div style="display:flex;align-items:center;gap:12px">
+      <div class="avatar" id="myAvatar">?</div>
+      <div>
+        <div class="user-name" id="myName">You</div>
+        <div class="status-label"><span class="status-dot"></span>Online</div>
+      </div>
+    </div>
+    <button class="notif-btn" onclick="requestNotifPermission()" title="Enable Notifications">🔔</button>
+  </div>
 
-<h2 id="callerName">
-Incoming Call
-</h2>
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('contacts')">Contacts</button>
+    <button class="tab" onclick="switchTab('history')">History</button>
+  </div>
 
-<button
-class="call-btn"
-onclick="acceptCall()">
-Accept
-</button>
+  <div id="contactsTab" class="tab-content active">
+    <div class="section-title">Online Now</div>
+    <div id="usersList"></div>
+  </div>
 
-<button
-class="reject-btn"
-onclick="rejectCall()">
-Reject
-</button>
-
+  <div id="historyTab" class="tab-content">
+    <div class="section-title">Recent Calls</div>
+    <div id="historyList"></div>
+  </div>
 </div>
 
-<button
-id="endCallBtn"
-class="end-btn"
-style="display:none;"
-onclick="endCall()">
-End Call
-</button>
+<!-- CALLING OVERLAY (outgoing + connected) -->
+<div id="callingOverlay">
+  <div style="text-align:center">
+    <div class="call-avatar-ring">
+      <div class="ring"></div><div class="ring"></div><div class="ring"></div>
+      <div class="call-avatar-big" id="callAvatarBig">?</div>
+    </div>
+    <div class="call-name" id="callNameBig">Unknown</div>
+    <div class="call-status-text" id="callStatusText">Calling...</div>
+  </div>
 
-<h2>Online Users</h2>
+  <div class="call-timer-big" id="callTimerBig">00:00</div>
 
-<div id="users"></div>
+  <div class="call-actions">
+    <button class="action-btn mute-btn" id="muteBtn" onclick="toggleMute()">
+      <div class="circle">🎤</div>
+      <div class="label">Mute</div>
+    </button>
+    <button class="action-btn end-call-big" onclick="endCall()">
+      <div class="circle">📵</div>
+      <div class="label">End</div>
+    </button>
+    <button class="action-btn speaker-btn" id="speakerBtn" onclick="toggleSpeaker()">
+      <div class="circle">🔊</div>
+      <div class="label">Speaker</div>
+    </button>
+  </div>
+</div>
 
-<h2>Call History</h2>
+<!-- INCOMING CALL OVERLAY -->
+<div id="incomingOverlay">
+  <div style="text-align:center">
+    <div class="incoming-label">📞 Incoming Call</div>
+    <div class="incoming-avatar-wrap">
+      <div class="incoming-ring"></div><div class="incoming-ring"></div><div class="incoming-ring"></div>
+      <div class="incoming-avatar" id="incomingAvatar">?</div>
+    </div>
+    <div class="incoming-name" id="incomingName">Unknown</div>
+    <div class="incoming-sub">VoiceConnect Call</div>
+  </div>
 
-<div id="history"></div>
+  <div class="incoming-actions">
+    <div class="incoming-action decline-btn" onclick="rejectCall()">
+      <div class="circle">📵</div>
+      <div class="label">Decline</div>
+    </div>
+    <div class="incoming-action accept-btn" onclick="acceptCall()">
+      <div class="circle">📞</div>
+      <div class="label">Accept</div>
+    </div>
+  </div>
+</div>
 
-<audio
-id="remoteAudio"
-autoplay>
-</audio>
+<audio id="remoteAudio" autoplay></audio>
 
 <script src="/socket.io/socket.io.js"></script>
-
 <script>
+// ════════════════════════════════
+//  AUDIO ENGINE
+// ════════════════════════════════
+let audioCtx;
+function getCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
 
+let ringInterval = null;
+let ringNodes = [];
+
+function playRingtone() {
+  stopRingtone();
+  function doRing() {
+    const ctx = getCtx();
+    [[0,0.4],[0.5,0.9]].forEach(([s,e]) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.frequency.setValueAtTime(480, ctx.currentTime+s);
+      osc.frequency.setValueAtTime(440, ctx.currentTime+s+0.2);
+      gain.gain.setValueAtTime(0.4, ctx.currentTime+s);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime+e);
+      osc.start(ctx.currentTime+s); osc.stop(ctx.currentTime+e);
+      ringNodes.push(osc);
+    });
+  }
+  doRing();
+  ringInterval = setInterval(doRing, 2000);
+}
+
+function stopRingtone() {
+  clearInterval(ringInterval); ringInterval = null;
+  ringNodes.forEach(n => { try{n.stop()}catch(e){} });
+  ringNodes = [];
+}
+
+let dialInterval = null;
+function playDialTone() {
+  stopDialTone();
+  function beep() {
+    const ctx = getCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.frequency.value = 440;
+    gain.gain.setValueAtTime(0.15, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime+0.4);
+    osc.start(ctx.currentTime); osc.stop(ctx.currentTime+0.4);
+  }
+  beep();
+  dialInterval = setInterval(beep, 2500);
+}
+
+function stopDialTone() { clearInterval(dialInterval); dialInterval = null; }
+
+function playConnectSound() {
+  const ctx = getCtx();
+  [523,659,784].forEach((freq,i) => {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0.3, ctx.currentTime+i*0.12);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime+i*0.12+0.3);
+    osc.start(ctx.currentTime+i*0.12); osc.stop(ctx.currentTime+i*0.12+0.4);
+  });
+}
+
+function playEndSound() {
+  const ctx = getCtx();
+  [784,523].forEach((freq,i) => {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0.2, ctx.currentTime+i*0.15);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime+i*0.15+0.25);
+    osc.start(ctx.currentTime+i*0.15); osc.stop(ctx.currentTime+i*0.15+0.3);
+  });
+}
+
+// ════════════════════════════════
+//  APP STATE
+// ════════════════════════════════
 const socket = io();
+let localStream, peerConnection, currentUser, currentUserName;
+let incomingOffer, incomingCallerName;
+let callStartTime, timerInterval;
+let isMuted = false;
 
-let localStream;
+const servers = { iceServers:[{urls:"stun:stun.l.google.com:19302"}] };
 
-let peerConnection;
-
-let currentUser;
-
-let currentUserName;
-
-let incomingOffer;
-
-let callStartTime;
-
-let timerInterval;
-
-const usersDiv =
-document.getElementById("users");
-
-const statusDiv =
-document.getElementById("status");
-
-const incomingCallDiv =
-document.getElementById("incomingCall");
-
-const callerNameDiv =
-document.getElementById("callerName");
-
-const remoteAudio =
-document.getElementById("remoteAudio");
-
-const endCallBtn =
-document.getElementById("endCallBtn");
-
-const historyDiv =
-document.getElementById("history");
-
-const callTimer =
-document.getElementById("callTimer");
-
-const servers = {
-    iceServers:[
-        {
-            urls:"stun:stun.l.google.com:19302"
-        }
-    ]
-};
-
-async function registerUser(){
-
-    const name =
-    document.getElementById("name").value;
-
-    if(!name){
-        alert("Enter Name");
-        return;
-    }
-
-    currentUserName = name;
-
-    localStream =
-    await navigator.mediaDevices
-    .getUserMedia({
-        audio:true
-    });
-
-    socket.emit(
-        "register-user",
-        name
-    );
-
-    statusDiv.innerHTML = "Online";
-
-}
-
-socket.on("users-list",(users)=>{
-
-    usersDiv.innerHTML = "";
-
-    users.forEach((user)=>{
-
-        if(user.socketId !== socket.id){
-
-            usersDiv.innerHTML += `
-            
-            <div class="user">
-
-            <h3>${user.name}</h3>
-
-            <button
-            class="call-btn"
-            onclick="callUser(
-            '${user.socketId}',
-            '${user.name}'
-            )">
-
-            Call
-
-            </button>
-
-            </div>
-            
-            `;
-
-        }
-
-    });
-
+// ════════════════════════════════
+//  REGISTER
+// ════════════════════════════════
+document.getElementById("nameInput").addEventListener("keydown", e => {
+  if (e.key === "Enter") registerUser();
 });
 
-function createPeer(){
+async function registerUser() {
+  const name = document.getElementById("nameInput").value.trim();
+  if (!name) { alert("Apna naam likho!"); return; }
+  currentUserName = name;
 
-    peerConnection =
-    new RTCPeerConnection(servers);
+  try {
+    localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  } catch(e) {
+    alert("Microphone access chahiye calls ke liye!");
+    return;
+  }
 
-    localStream.getTracks()
-    .forEach((track)=>{
+  socket.emit("register-user", name);
+  document.getElementById("myAvatar").textContent = name[0].toUpperCase();
+  document.getElementById("myName").textContent = name;
 
-        peerConnection.addTrack(
-            track,
-            localStream
-        );
+  document.getElementById("registerScreen").style.display = "none";
+  document.getElementById("mainApp").style.display = "block";
 
+  setTimeout(requestNotifPermission, 800);
+}
+
+// ════════════════════════════════
+//  NOTIFICATIONS
+// ════════════════════════════════
+async function requestNotifPermission() {
+  if (!("Notification" in window)) return;
+  if (Notification.permission === "default") {
+    await Notification.requestPermission();
+  }
+}
+
+function sendBrowserNotif(title, body) {
+  if (Notification.permission === "granted") {
+    const n = new Notification(title, {
+      body,
+      icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📞</text></svg>",
+      tag: "vc-call",
+      requireInteraction: true
     });
-
-    peerConnection.ontrack = (event)=>{
-
-        remoteAudio.srcObject =
-        event.streams[0];
-
-    };
-
-    peerConnection.onicecandidate =
-    (event)=>{
-
-        if(event.candidate){
-
-            socket.emit(
-                "ice-candidate",
-                {
-                    to:currentUser,
-                    candidate:event.candidate
-                }
-            );
-
-        }
-
-    };
-
+    n.onclick = () => { window.focus(); n.close(); };
+    return n;
+  }
 }
 
-async function callUser(
-socketId,
-name
-){
-
-    currentUser = socketId;
-
-    createPeer();
-
-    const offer =
-    await peerConnection.createOffer();
-
-    await peerConnection
-    .setLocalDescription(offer);
-
-    socket.emit("call-user",{
-        to:socketId,
-        offer,
-        callerName:currentUserName
-    });
-
-    statusDiv.innerHTML =
-    `Calling ${name}...`;
-
+function showBanner(title, sub) {
+  document.getElementById("notifTitle").textContent = title;
+  document.getElementById("notifSub").textContent = sub;
+  const b = document.getElementById("notifBanner");
+  b.classList.add("show");
+  setTimeout(() => b.classList.remove("show"), 5000);
 }
 
-socket.on("incoming-call",
-({from,offer,callerName})=>{
-
-    currentUser = from;
-
-    incomingOffer = offer;
-
-    incomingCallDiv.style.display =
-    "block";
-
-    callerNameDiv.innerHTML =
-    `${callerName} Calling...`;
-
-});
-
-async function acceptCall(){
-
-    incomingCallDiv.style.display =
-    "none";
-
-    createPeer();
-
-    await peerConnection
-    .setRemoteDescription(
-        new RTCSessionDescription(
-            incomingOffer
-        )
-    );
-
-    const answer =
-    await peerConnection.createAnswer();
-
-    await peerConnection
-    .setLocalDescription(answer);
-
-    socket.emit("answer-call",{
-        to:currentUser,
-        answer
-    });
-
-    startTimer();
-
-    endCallBtn.style.display = "block";
-
-    statusDiv.innerHTML =
-    "Call Connected";
-
+// ════════════════════════════════
+//  TABS
+// ════════════════════════════════
+function switchTab(tab) {
+  document.querySelectorAll(".tab").forEach((t,i) => t.classList.toggle("active", ["contacts","history"][i]===tab));
+  document.getElementById("contactsTab").classList.toggle("active", tab==="contacts");
+  document.getElementById("historyTab").classList.toggle("active", tab==="history");
 }
 
-function rejectCall(){
-
-    socket.emit("reject-call",{
-        to:currentUser
-    });
-
-    incomingCallDiv.style.display =
-    "none";
-
-    statusDiv.innerHTML =
-    "Call Rejected";
-
-}
-
-socket.on("call-rejected",()=>{
-
-    statusDiv.innerHTML =
-    "Call Rejected";
-
-});
-
-socket.on("call-answered",
-async(answer)=>{
-
-    await peerConnection
-    .setRemoteDescription(
-        new RTCSessionDescription(
-            answer
-        )
-    );
-
-    startTimer();
-
-    endCallBtn.style.display = "block";
-
-    statusDiv.innerHTML =
-    "Call Connected";
-
-});
-
-function startTimer(){
-
-    callStartTime = Date.now();
-
-    timerInterval =
-    setInterval(()=>{
-
-        const diff =
-        Math.floor(
-            (Date.now() -
-            callStartTime)/1000
-        );
-
-        const mins =
-        String(
-            Math.floor(diff/60)
-        ).padStart(2,"0");
-
-        const secs =
-        String(
-            diff%60
-        ).padStart(2,"0");
-
-        callTimer.innerHTML =
-        `${mins}:${secs}`;
-
-    },1000);
-
-}
-
-function endCall(){
-
-    socket.emit("end-call",{
-        to:currentUser
-    });
-
-    saveHistory();
-
-    closeCall();
-
-}
-
-socket.on("call-ended",()=>{
-
-    saveHistory();
-
-    closeCall();
-
-});
-
-function closeCall(){
-
-    if(peerConnection){
-
-        peerConnection.close();
-
-    }
-
-    clearInterval(timerInterval);
-
-    callTimer.innerHTML = "00:00";
-
-    endCallBtn.style.display = "none";
-
-    statusDiv.innerHTML = "Call Ended";
-
-}
-
-async function saveHistory(){
-
-    const duration =
-    callTimer.innerHTML;
-
-    socket.emit(
-        "save-call-history",
-        {
-            callerName:currentUserName,
-            receiverName:"Unknown",
-            duration
-        }
-    );
-
-}
-
-socket.on("call-history",(history)=>{
-
-    historyDiv.innerHTML = "";
-
-    history.forEach((item)=>{
-
-        historyDiv.innerHTML += `
-        
-        <div class="history">
-
-        <h3>
-        ${item.callerName}
-        </h3>
-
-        <p>
-        Duration:
-        ${item.duration}
-        </p>
-
+// ════════════════════════════════
+//  USERS
+// ════════════════════════════════
+socket.on("users-list", (users) => {
+  const list = document.getElementById("usersList");
+  list.innerHTML = "";
+  const others = users.filter(u => u.socketId !== socket.id);
+  if (!others.length) {
+    list.innerHTML = `<div class="empty-state"><div class="icon">👥</div><p>Koi online nahi abhi</p></div>`;
+    return;
+  }
+  others.forEach(user => {
+    const col = strColor(user.name);
+    list.innerHTML += `
+      <div class="user-card">
+        <div class="avatar" style="background:${col}">${user.name[0].toUpperCase()}</div>
+        <div class="user-card-info">
+          <div class="name">${esc(user.name)}</div>
+          <div class="online">● Online</div>
         </div>
-        
-        `;
-
-    });
-
+        <button class="call-btn-small" onclick="callUser('${user.socketId}','${esc(user.name)}')">📞</button>
+      </div>`;
+  });
 });
 
-socket.on("ice-candidate",
-async(candidate)=>{
+function strColor(s) {
+  const c=["#7c3aed","#2563eb","#059669","#d97706","#db2777","#0891b2"];
+  let h=0; for(let x of s) h=(h*31+x.charCodeAt(0))%c.length;
+  return c[h];
+}
+function esc(s) { return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
 
-    try{
+// ════════════════════════════════
+//  PEER
+// ════════════════════════════════
+function createPeer() {
+  peerConnection = new RTCPeerConnection(servers);
+  localStream.getTracks().forEach(t => peerConnection.addTrack(t, localStream));
+  peerConnection.ontrack = e => { document.getElementById("remoteAudio").srcObject = e.streams[0]; };
+  peerConnection.onicecandidate = e => {
+    if (e.candidate) socket.emit("ice-candidate",{to:currentUser, candidate:e.candidate});
+  };
+}
 
-        await peerConnection
-        .addIceCandidate(candidate);
+// ════════════════════════════════
+//  OUTGOING CALL
+// ════════════════════════════════
+async function callUser(socketId, name) {
+  currentUser = socketId;
+  createPeer();
+  const offer = await peerConnection.createOffer();
+  await peerConnection.setLocalDescription(offer);
+  socket.emit("call-user",{to:socketId, offer, callerName:currentUserName});
 
-    }catch(err){
+  document.getElementById("callAvatarBig").textContent = name[0].toUpperCase();
+  document.getElementById("callNameBig").textContent = name;
+  document.getElementById("callStatusText").textContent = "Calling...";
+  document.getElementById("callTimerBig").textContent = "00:00";
+  document.getElementById("callingOverlay").classList.add("show");
+  playDialTone();
+}
 
-        console.log(err);
+// ════════════════════════════════
+//  INCOMING CALL
+// ════════════════════════════════
+socket.on("incoming-call", ({from, offer, callerName}) => {
+  currentUser = from;
+  incomingOffer = offer;
+  incomingCallerName = callerName;
 
-    }
+  document.getElementById("incomingAvatar").textContent = callerName[0].toUpperCase();
+  document.getElementById("incomingName").textContent = callerName;
+  document.getElementById("incomingOverlay").classList.add("show");
 
+  playRingtone();
+  sendBrowserNotif(`📞 ${callerName} call kar raha hai`, "VoiceConnect – tap karke answer karo");
+  showBanner(`📞 ${callerName} calling...`, "Accept ya Decline karo");
 });
 
+async function acceptCall() {
+  stopRingtone();
+  document.getElementById("incomingOverlay").classList.remove("show");
+
+  createPeer();
+  await peerConnection.setRemoteDescription(new RTCSessionDescription(incomingOffer));
+  const answer = await peerConnection.createAnswer();
+  await peerConnection.setLocalDescription(answer);
+  socket.emit("answer-call",{to:currentUser, answer});
+
+  document.getElementById("callAvatarBig").textContent = incomingCallerName[0].toUpperCase();
+  document.getElementById("callNameBig").textContent = incomingCallerName;
+  document.getElementById("callStatusText").textContent = "Connected";
+  document.getElementById("callTimerBig").textContent = "00:00";
+  document.getElementById("callingOverlay").classList.add("show");
+
+  playConnectSound();
+  startTimer();
+}
+
+function rejectCall() {
+  stopRingtone();
+  socket.emit("reject-call",{to:currentUser});
+  document.getElementById("incomingOverlay").classList.remove("show");
+  playEndSound();
+}
+
+socket.on("call-rejected", () => {
+  stopDialTone();
+  document.getElementById("callingOverlay").classList.remove("show");
+  playEndSound();
+  showBanner("Call Decline Ho Gaya", "Doosre ne call decline ki");
+});
+
+socket.on("call-answered", async (answer) => {
+  stopDialTone();
+  await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+  document.getElementById("callStatusText").textContent = "Connected";
+  playConnectSound();
+  startTimer();
+});
+
+// ════════════════════════════════
+//  IN-CALL CONTROLS
+// ════════════════════════════════
+function toggleMute() {
+  isMuted = !isMuted;
+  localStream.getAudioTracks().forEach(t => t.enabled = !isMuted);
+  const btn = document.getElementById("muteBtn");
+  btn.querySelector(".circle").textContent = isMuted ? "🔇" : "🎤";
+  btn.querySelector(".label").textContent = isMuted ? "Unmute" : "Mute";
+  btn.classList.toggle("muted", isMuted);
+}
+
+function toggleSpeaker() {
+  // Browser limitation — just toggle label
+  const btn = document.getElementById("speakerBtn");
+  btn.querySelector(".label").textContent = btn.querySelector(".label").textContent === "Speaker" ? "Earpiece" : "Speaker";
+}
+
+function endCall() {
+  socket.emit("end-call",{to:currentUser});
+  saveHistory();
+  closeCall();
+}
+
+socket.on("call-ended", () => {
+  saveHistory();
+  closeCall();
+  showBanner("Call Khatam", "Doosre ne call end ki");
+});
+
+function closeCall() {
+  if (peerConnection) { peerConnection.close(); peerConnection = null; }
+  clearInterval(timerInterval); timerInterval = null;
+  document.getElementById("callTimerBig").textContent = "00:00";
+  document.getElementById("callingOverlay").classList.remove("show");
+  document.getElementById("incomingOverlay").classList.remove("show");
+  stopRingtone(); stopDialTone();
+  isMuted = false;
+  if (localStream) localStream.getAudioTracks().forEach(t => t.enabled = true);
+  const btn = document.getElementById("muteBtn");
+  btn.querySelector(".circle").textContent = "🎤";
+  btn.querySelector(".label").textContent = "Mute";
+  btn.classList.remove("muted");
+  playEndSound();
+}
+
+// ════════════════════════════════
+//  TIMER
+// ════════════════════════════════
+function startTimer() {
+  callStartTime = Date.now();
+  timerInterval = setInterval(() => {
+    const d = Math.floor((Date.now()-callStartTime)/1000);
+    const m = String(Math.floor(d/60)).padStart(2,"0");
+    const s = String(d%60).padStart(2,"0");
+    document.getElementById("callTimerBig").textContent = `${m}:${s}`;
+  },1000);
+}
+
+// ════════════════════════════════
+//  HISTORY
+// ════════════════════════════════
+function saveHistory() {
+  const dur = document.getElementById("callTimerBig").textContent;
+  const other = document.getElementById("callNameBig").textContent;
+  socket.emit("save-call-history",{
+    callerName: currentUserName,
+    receiverName: other || "Unknown",
+    duration: dur
+  });
+}
+
+socket.on("call-history", (history) => {
+  const list = document.getElementById("historyList");
+  list.innerHTML = "";
+  if (!history.length) {
+    list.innerHTML = `<div class="empty-state"><div class="icon">📋</div><p>Abhi koi call nahi hui</p></div>`;
+    return;
+  }
+  history.forEach(item => {
+    const t = new Date(item.createdAt).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});
+    list.innerHTML += `
+      <div class="history-item">
+        <div class="history-icon">📞</div>
+        <div class="history-info">
+          <div class="name">${esc(item.callerName)} → ${esc(item.receiverName)}</div>
+          <div class="dur">Duration: ${item.duration}</div>
+          <div class="time">${t}</div>
+        </div>
+      </div>`;
+  });
+});
+
+socket.on("ice-candidate", async (candidate) => {
+  try { await peerConnection.addIceCandidate(candidate); } catch(e) {}
+});
 </script>
-
 </body>
-
 </html>
