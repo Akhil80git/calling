@@ -1,472 +1,160 @@
 <!DOCTYPE html>
-<html lang="hi">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#0a0a0f">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>VoiceConnect</title>
-<link rel="manifest" href="/manifest.json">
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700;800&display=swap');
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#0a0a0f; color:#fff; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; min-height:100vh; overflow-x:hidden; }
 
-:root {
-  --green:   #22c55e;
-  --green2:  #16a34a;
-  --red:     #ef4444;
-  --red2:    #dc2626;
-  --bg:      #0a0a0f;
-  --surface: #111827;
-  --border:  #1f2937;
-  --border2: #374151;
-  --muted:   #6b7280;
-  --muted2:  #4b5563;
-  --text:    #f9fafb;
-}
+/* ── AUTH SCREENS ── */
+#authScreen { display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:100vh; padding:30px; background:radial-gradient(ellipse at top,#1a1a2e 0%,#0a0a0f 70%); }
+.app-logo { width:90px; height:90px; border-radius:28px; background:linear-gradient(135deg,#22c55e,#16a34a); display:flex; align-items:center; justify-content:center; font-size:40px; margin-bottom:24px; box-shadow:0 0 40px rgba(34,197,94,0.4); }
+#authScreen h1 { font-size:28px; font-weight:700; margin-bottom:6px; }
+#authScreen .tagline { color:#6b7280; margin-bottom:30px; font-size:15px; }
 
-* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
-html, body { height:100%; }
-body {
-  background: var(--bg);
-  color: var(--text);
-  font-family: 'Sora', -apple-system, sans-serif;
-  min-height: 100vh;
-  overflow-x: hidden;
-  overscroll-behavior: none;
-}
+.auth-tabs { display:flex; background:#111827; border-radius:14px; padding:4px; margin-bottom:24px; width:100%; max-width:340px; }
+.auth-tab { flex:1; padding:10px; text-align:center; font-size:14px; font-weight:600; color:#6b7280; cursor:pointer; border-radius:10px; border:none; background:none; transition:all 0.2s; }
+.auth-tab.active { background:#22c55e; color:#fff; }
 
-/* ══ SCROLLBAR ══ */
-::-webkit-scrollbar { width:4px; }
-::-webkit-scrollbar-track { background:transparent; }
-::-webkit-scrollbar-thumb { background:#374151; border-radius:4px; }
-
-/* ══════════════════════
-   AUTH SCREEN
-══════════════════════ */
-#authScreen {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 100vh;
-  padding: 30px 24px;
-  background: radial-gradient(ellipse 80% 60% at 50% 0%, #0d2a1f 0%, var(--bg) 70%);
-  animation: fadeScreen 0.4s ease;
-}
-@keyframes fadeScreen { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
-
-.app-logo {
-  width: 88px; height: 88px;
-  border-radius: 26px;
-  background: linear-gradient(135deg, var(--green), var(--green2));
-  display: flex; align-items: center; justify-content: center;
-  font-size: 38px;
-  margin-bottom: 20px;
-  box-shadow: 0 0 50px rgba(34,197,94,0.35), 0 0 120px rgba(34,197,94,0.12);
-  animation: logoFloat 3s ease-in-out infinite;
-}
-@keyframes logoFloat {
-  0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)}
-}
-
-#authScreen h1 { font-size: 30px; font-weight: 800; letter-spacing:-0.5px; }
-.tagline { color: var(--muted); margin-bottom: 32px; font-size: 14px; margin-top: 4px; }
-
-.auth-tabs {
-  display: flex;
-  background: var(--surface);
-  border-radius: 14px;
-  padding: 4px;
-  margin-bottom: 22px;
-  width: 100%; max-width: 340px;
-  border: 1px solid var(--border);
-}
-.auth-tab {
-  flex: 1; padding: 11px;
-  text-align: center;
-  font-size: 14px; font-weight: 700;
-  color: var(--muted);
-  cursor: pointer;
-  border-radius: 10px;
-  border: none; background: none;
-  transition: all 0.25s ease;
-  font-family: inherit;
-}
-.auth-tab.active {
-  background: linear-gradient(135deg, var(--green), var(--green2));
-  color: #fff;
-  box-shadow: 0 2px 12px rgba(34,197,94,0.4);
-}
-
-.auth-form { width:100%; max-width:340px; display:none; flex-direction:column; gap:12px; }
-.auth-form.active { display:flex; animation:fadeScreen 0.3s ease; }
-
-.input-wrap { position:relative; }
-.input-wrap input {
-  width: 100%;
-  padding: 15px 18px;
-  border: 1.5px solid var(--border);
-  border-radius: 14px;
-  background: var(--surface);
-  color: var(--text);
-  font-size: 16px;
-  outline: none;
-  transition: border-color 0.2s, box-shadow 0.2s;
-  font-family: inherit;
-}
-.input-wrap input:focus {
-  border-color: var(--green);
-  box-shadow: 0 0 0 3px rgba(34,197,94,0.12);
-}
-.input-wrap input::placeholder { color: var(--muted2); }
-
-.auth-btn {
-  width: 100%; padding: 15px;
-  border: none; border-radius: 14px;
-  background: linear-gradient(135deg, var(--green), var(--green2));
-  color: #fff; font-size: 16px; font-weight: 700;
-  cursor: pointer;
-  transition: transform 0.1s, box-shadow 0.2s;
-  box-shadow: 0 4px 24px rgba(34,197,94,0.35);
-  font-family: inherit;
-  letter-spacing: 0.3px;
-}
-.auth-btn:active { transform: scale(0.97); }
+.auth-form { width:100%; max-width:340px; display:none; flex-direction:column; gap:14px; }
+.auth-form.active { display:flex; }
+.input-group input { width:100%; padding:16px 18px; border:1.5px solid #1f2937; border-radius:14px; background:#111827; color:#fff; font-size:16px; outline:none; transition:border-color 0.2s; }
+.input-group input:focus { border-color:#22c55e; }
+.input-group input::placeholder { color:#4b5563; }
+.auth-btn { width:100%; padding:16px; border:none; border-radius:14px; background:linear-gradient(135deg,#22c55e,#16a34a); color:#fff; font-size:17px; font-weight:700; cursor:pointer; transition:transform 0.1s; box-shadow:0 4px 20px rgba(34,197,94,0.35); }
+.auth-btn:active { transform:scale(0.97); }
 .auth-btn:disabled { opacity:0.6; cursor:not-allowed; }
-.auth-error { color:var(--red); font-size:13px; text-align:center; min-height:18px; }
+.auth-error { color:#ef4444; font-size:13px; text-align:center; min-height:18px; }
 
-/* ══════════════════════
-   MAIN APP
-══════════════════════ */
-#mainApp { display:none; min-height:100vh; }
+/* ── MAIN APP ── */
+#mainApp { display:none; }
 
-/* TOP BAR */
-.top-bar {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 52px 20px 14px;          /* safe area top */
-  border-bottom: 1px solid var(--border);
-  background: rgba(10,10,15,0.8);
-  backdrop-filter: blur(12px);
-  position: sticky; top:0; z-index:50;
-}
+.top-bar { display:flex; align-items:center; justify-content:space-between; padding:18px 20px 12px; border-bottom:1px solid #1f2937; }
 .top-bar-left { display:flex; align-items:center; gap:12px; }
 
-.avatar {
-  width:44px; height:44px;
-  border-radius:50%;
-  background: linear-gradient(135deg, var(--green), var(--green2));
-  display:flex; align-items:center; justify-content:center;
-  font-weight:800; font-size:18px; flex-shrink:0;
-  cursor:pointer; user-select:none;
-}
-.user-name { font-weight:700; font-size:15px; }
-.status-label { font-size:11px; color:var(--muted); display:flex; align-items:center; gap:4px; margin-top:2px; }
-.status-dot {
-  width:7px; height:7px; border-radius:50%;
-  background:var(--green);
-  box-shadow:0 0 8px var(--green);
-  animation:pulse 2s ease-in-out infinite;
-}
-@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+.profile-btn { position:relative; cursor:pointer; }
+.avatar { width:44px; height:44px; border-radius:50%; background:linear-gradient(135deg,#22c55e,#16a34a); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:18px; flex-shrink:0; }
+.user-name { font-weight:600; font-size:16px; }
+.status-label { font-size:12px; color:#6b7280; }
+.status-dot { display:inline-block; width:8px; height:8px; border-radius:50%; background:#22c55e; margin-right:5px; box-shadow:0 0 6px #22c55e; }
 
-/* PROFILE DROPDOWN */
-.profile-btn { position:relative; }
-.profile-dropdown {
-  position: absolute; top: 56px; left: 0;
-  background: #1a2332; border: 1px solid var(--border2);
-  border-radius: 16px; min-width: 230px; padding:8px;
-  z-index: 500; box-shadow:0 12px 40px rgba(0,0,0,0.6);
-  display:none; transform-origin:top left;
-}
-.profile-dropdown.show { display:block; animation:dropIn 0.18s cubic-bezier(0.34,1.56,0.64,1); }
-@keyframes dropIn { from{opacity:0;transform:scale(0.9)} to{opacity:1;transform:scale(1)} }
-.pd-header { padding:12px 14px 10px; border-bottom:1px solid var(--border); margin-bottom:6px; }
-.pd-name { font-weight:700; font-size:15px; }
-.pd-username { font-size:12px; color:var(--muted); margin-top:2px; }
-.pd-item {
-  display:flex; align-items:center; gap:10px;
-  padding:11px 14px; border-radius:10px;
-  cursor:pointer; font-size:14px; font-weight:600;
-  transition:background 0.15s;
-}
-.pd-item:hover { background:var(--border); }
-.pd-item.danger { color:var(--red); }
-.pd-icon { font-size:17px; }
+.profile-dropdown { position:absolute; top:54px; left:0; background:#1f2937; border:1px solid #374151; border-radius:16px; min-width:220px; padding:8px; z-index:500; box-shadow:0 8px 32px rgba(0,0,0,0.5); display:none; }
+.profile-dropdown.show { display:block; animation:fadeIn 0.15s ease; }
+@keyframes fadeIn { from{opacity:0;transform:translateY(-6px)} to{opacity:1;transform:translateY(0)} }
+.pd-header { padding:12px 14px; border-bottom:1px solid #374151; margin-bottom:6px; }
+.pd-header .pd-name { font-weight:700; font-size:15px; }
+.pd-header .pd-username { font-size:12px; color:#6b7280; margin-top:2px; }
+.pd-item { display:flex; align-items:center; gap:10px; padding:11px 14px; border-radius:10px; cursor:pointer; font-size:14px; font-weight:500; transition:background 0.15s; }
+.pd-item:hover { background:#374151; }
+.pd-item.danger { color:#ef4444; }
+.pd-item .pd-icon { font-size:18px; }
 
-/* NOTIF BTN */
-.notif-btn {
-  width:42px; height:42px; border-radius:12px;
-  background:var(--surface); border:1px solid var(--border);
-  color:var(--muted); font-size:18px; cursor:pointer;
-  display:flex; align-items:center; justify-content:center;
-  transition:all 0.2s;
-}
-.notif-btn.enabled { color:var(--green); background:#052e16; border-color:#14532d; }
+.notif-btn { width:40px; height:40px; border-radius:12px; background:#1f2937; border:none; color:#9ca3af; font-size:18px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:background 0.2s; }
+.notif-btn.enabled { color:#22c55e; background:#052e16; }
 
-/* TABS */
-.tabs {
-  display:flex; padding:14px 20px 0; gap:4px;
-  border-bottom:1px solid var(--border);
-}
-.tab {
-  flex:1; padding:11px; text-align:center;
-  font-size:14px; font-weight:700; color:var(--muted);
-  cursor:pointer; border-bottom:2px solid transparent;
-  background:none; border-top:none; border-left:none; border-right:none;
-  transition:color 0.2s; font-family:inherit;
-}
-.tab.active { color:var(--green); border-bottom-color:var(--green); }
+/* ── TABS ── */
+.tabs { display:flex; padding:12px 20px 0; gap:4px; border-bottom:1px solid #1f2937; }
+.tab { flex:1; padding:10px; text-align:center; font-size:14px; font-weight:600; color:#6b7280; cursor:pointer; border-bottom:2px solid transparent; background:none; border-top:none; border-left:none; border-right:none; transition:color 0.2s; }
+.tab.active { color:#22c55e; border-bottom-color:#22c55e; }
+.tab-content { display:none; padding:16px 20px; }
+.tab-content.active { display:block; }
+.section-title { font-size:13px; font-weight:600; color:#6b7280; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:12px; }
 
-.tab-content { display:none; padding:18px 20px; }
-.tab-content.active { display:block; animation:fadeScreen 0.25s ease; }
-.section-title {
-  font-size:11px; font-weight:700; color:var(--muted);
-  text-transform:uppercase; letter-spacing:1px; margin-bottom:14px;
-}
+/* ── USER CARD ── */
+.user-card { display:flex; align-items:center; gap:14px; padding:14px; background:#111827; border-radius:16px; margin-bottom:10px; border:1px solid #1f2937; }
+.user-card .avatar { width:48px; height:48px; font-size:19px; }
+.user-card-info { flex:1; }
+.user-card-info .name { font-weight:600; font-size:15px; }
+.user-card-info .uname { font-size:12px; color:#6b7280; margin-top:1px; }
+.user-card-info .online-txt { font-size:12px; color:#22c55e; margin-top:2px; }
+.user-card-info .offline-txt { font-size:12px; color:#6b7280; margin-top:2px; }
+.call-btn-small { width:44px; height:44px; border-radius:50%; background:linear-gradient(135deg,#22c55e,#16a34a); border:none; color:#fff; font-size:20px; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 12px rgba(34,197,94,0.4); transition:transform 0.1s; }
+.call-btn-small:active { transform:scale(0.9); }
 
-/* USER CARD */
-.user-card {
-  display:flex; align-items:center; gap:14px;
-  padding:14px 16px; background:var(--surface);
-  border-radius:16px; margin-bottom:10px;
-  border:1px solid var(--border);
-  transition:border-color 0.2s, transform 0.1s;
-}
-.user-card:active { transform:scale(0.99); }
-.user-card:hover { border-color:var(--border2); }
-.uc-info { flex:1; min-width:0; }
-.uc-name { font-weight:700; font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.uc-uname { font-size:12px; color:var(--muted); margin-top:2px; }
-.uc-online { font-size:12px; color:var(--green); margin-top:3px; }
-.uc-offline { font-size:12px; color:var(--muted); margin-top:3px; }
-
-.call-btn {
-  width:46px; height:46px; border-radius:50%;
-  background:linear-gradient(135deg, var(--green), var(--green2));
-  border:none; color:#fff; font-size:20px; cursor:pointer;
-  display:flex; align-items:center; justify-content:center;
-  box-shadow:0 2px 16px rgba(34,197,94,0.4);
-  transition:transform 0.15s, box-shadow 0.15s;
-  flex-shrink:0;
-}
-.call-btn:active { transform:scale(0.88); box-shadow:none; }
-
-/* HISTORY */
-.history-item {
-  display:flex; align-items:center; gap:14px;
-  padding:14px 16px; background:var(--surface);
-  border-radius:16px; margin-bottom:10px;
-  border:1px solid var(--border);
-}
-.history-icon {
-  width:44px; height:44px; border-radius:50%;
-  background:#1f2937; display:flex; align-items:center;
-  justify-content:center; font-size:18px; flex-shrink:0;
-}
-.history-info .hi-name { font-weight:700; font-size:14px; }
-.history-info .hi-dur { font-size:13px; color:var(--muted); margin-top:3px; }
-.history-info .hi-time { font-size:11px; color:var(--muted2); margin-top:2px; }
-
-.empty-state { text-align:center; padding:48px 0; color:var(--muted2); }
-.empty-state .es-icon { font-size:44px; margin-bottom:12px; }
+/* ── HISTORY ── */
+.history-item { display:flex; align-items:center; gap:14px; padding:14px; background:#111827; border-radius:16px; margin-bottom:10px; border:1px solid #1f2937; }
+.history-icon { width:42px; height:42px; border-radius:50%; background:#1f2937; display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0; }
+.history-info .name { font-weight:600; font-size:15px; }
+.history-info .dur { font-size:13px; color:#6b7280; margin-top:3px; }
+.history-info .time { font-size:12px; color:#4b5563; margin-top:2px; }
+.empty-state { text-align:center; padding:40px 0; color:#4b5563; }
+.empty-state .icon { font-size:40px; margin-bottom:10px; }
 .empty-state p { font-size:14px; }
 
-/* ══════════════════════
-   CALLING OVERLAY
-══════════════════════ */
-#callingOverlay {
-  display:none; position:fixed; inset:0; z-index:100;
-  background:linear-gradient(170deg,#071c12,#0f2d1e,#071c12);
-  flex-direction:column; align-items:center;
-  justify-content:space-between; padding:90px 30px 70px;
-}
-#callingOverlay.show { display:flex; animation:fadeScreen 0.3s ease; }
+/* ── CALLING OVERLAY ── */
+#callingOverlay { display:none; position:fixed; inset:0; z-index:100; background:linear-gradient(160deg,#0f2027,#203a43,#0f2027); flex-direction:column; align-items:center; justify-content:space-between; padding:80px 30px 60px; }
+#callingOverlay.show { display:flex; }
+.call-avatar-ring { position:relative; width:130px; height:130px; display:flex; align-items:center; justify-content:center; }
+.ring { position:absolute; border-radius:50%; border:2px solid rgba(34,197,94,0.3); animation:ringPulse 1.8s ease-out infinite; }
+.ring:nth-child(1){width:130px;height:130px;animation-delay:0s}
+.ring:nth-child(2){width:175px;height:175px;animation-delay:0.4s}
+.ring:nth-child(3){width:220px;height:220px;animation-delay:0.8s}
+@keyframes ringPulse { 0%{opacity:0.7;transform:scale(0.9)} 100%{opacity:0;transform:scale(1.1)} }
+.call-avatar-big { width:110px; height:110px; border-radius:50%; background:linear-gradient(135deg,#22c55e,#16a34a); display:flex; align-items:center; justify-content:center; font-size:44px; font-weight:700; z-index:1; box-shadow:0 0 30px rgba(34,197,94,0.4); }
+.call-name { font-size:30px; font-weight:700; text-align:center; margin-top:24px; }
+.call-status-text { font-size:16px; color:#9ca3af; text-align:center; margin-top:8px; }
+.call-timer-big { font-size:22px; font-weight:300; color:#22c55e; letter-spacing:2px; }
+.call-actions { display:flex; gap:28px; align-items:center; }
+.action-btn { display:flex; flex-direction:column; align-items:center; gap:8px; cursor:pointer; border:none; background:none; }
+.action-btn .circle { width:64px; height:64px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:26px; transition:transform 0.15s; }
+.action-btn:active .circle { transform:scale(0.9); }
+.action-btn .label { font-size:12px; color:#9ca3af; }
+.mute-btn .circle { background:#1f2937; }
+.speaker-btn .circle { background:#1f2937; }
+.end-call-big .circle { background:#ef4444; box-shadow:0 4px 20px rgba(239,68,68,0.5); }
+.mute-btn.muted .circle { background:#ef4444; }
 
-.call-avatar-ring {
-  position:relative; width:140px; height:140px;
-  display:flex; align-items:center; justify-content:center;
-}
-.ring {
-  position:absolute; border-radius:50%;
-  border:2px solid rgba(34,197,94,0.25);
-  animation:ringOut 2s ease-out infinite;
-}
-.ring:nth-child(1){width:140px;height:140px;animation-delay:0s}
-.ring:nth-child(2){width:190px;height:190px;animation-delay:0.5s}
-.ring:nth-child(3){width:240px;height:240px;animation-delay:1s}
-@keyframes ringOut { 0%{opacity:0.8;transform:scale(0.88)} 100%{opacity:0;transform:scale(1.12)} }
-
-.call-avatar-big {
-  width:116px; height:116px; border-radius:50%;
-  background:linear-gradient(135deg, var(--green), var(--green2));
-  display:flex; align-items:center; justify-content:center;
-  font-size:46px; font-weight:800; z-index:1;
-  box-shadow:0 0 40px rgba(34,197,94,0.5);
-}
-.call-name { font-size:30px; font-weight:800; text-align:center; margin-top:22px; letter-spacing:-0.5px; }
-.call-status { font-size:15px; color:#9ca3af; text-align:center; margin-top:8px; }
-.call-timer {
-  font-size:28px; font-weight:300; color:var(--green);
-  letter-spacing:3px; font-variant-numeric:tabular-nums;
-}
-
-/* AUDIO VISUALIZER (mic activity) */
-.audio-vis {
-  display:flex; align-items:flex-end; gap:4px; height:28px;
-  opacity:0; transition:opacity 0.3s;
-}
-.audio-vis.active { opacity:1; }
-.vis-bar {
-  width:4px; background:var(--green); border-radius:2px;
-  animation:visAnim 0.6s ease-in-out infinite alternate;
-}
-.vis-bar:nth-child(1){height:8px; animation-delay:0s}
-.vis-bar:nth-child(2){height:18px;animation-delay:0.1s}
-.vis-bar:nth-child(3){height:26px;animation-delay:0.2s}
-.vis-bar:nth-child(4){height:18px;animation-delay:0.3s}
-.vis-bar:nth-child(5){height:8px; animation-delay:0.4s}
-@keyframes visAnim { from{transform:scaleY(0.3)} to{transform:scaleY(1)} }
-
-.call-actions { display:flex; gap:30px; align-items:center; }
-.action-btn {
-  display:flex; flex-direction:column; align-items:center; gap:8px;
-  cursor:pointer; border:none; background:none;
-  font-family:inherit;
-}
-.action-btn .ab-circle {
-  width:66px; height:66px; border-radius:50%;
-  display:flex; align-items:center; justify-content:center;
-  font-size:26px; transition:transform 0.15s;
-}
-.action-btn:active .ab-circle { transform:scale(0.88); }
-.action-btn .ab-label { font-size:12px; color:#9ca3af; font-weight:600; }
-.btn-mute .ab-circle  { background:#1f2937; }
-.btn-spk  .ab-circle  { background:#1f2937; }
-.btn-end  .ab-circle  { background:var(--red); box-shadow:0 4px 24px rgba(239,68,68,0.5); }
-.btn-mute.muted .ab-circle { background:var(--red); }
-
-/* ══════════════════════
-   INCOMING OVERLAY
-══════════════════════ */
-#incomingOverlay {
-  display:none; position:fixed; inset:0; z-index:200;
-  background:linear-gradient(170deg,#1c0707,#2d1515,#1c0707);
-  flex-direction:column; align-items:center;
-  justify-content:space-between; padding:90px 30px 70px;
-}
-#incomingOverlay.show { display:flex; animation:slideUp 0.35s cubic-bezier(0.34,1.56,0.64,1); }
+/* ── INCOMING OVERLAY ── */
+#incomingOverlay { display:none; position:fixed; inset:0; z-index:200; background:linear-gradient(160deg,#1a0a0a,#2d1515,#1a0a0a); flex-direction:column; align-items:center; justify-content:space-between; padding:80px 30px 70px; animation:slideUp 0.3s ease-out; }
+#incomingOverlay.show { display:flex; }
 @keyframes slideUp { from{transform:translateY(100%);opacity:0} to{transform:translateY(0);opacity:1} }
+.incoming-label { font-size:14px; color:#ef4444; letter-spacing:1px; text-transform:uppercase; margin-bottom:30px; text-align:center; animation:blink 1s ease-in-out infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.4} }
+.incoming-avatar-wrap { position:relative; width:130px; height:130px; margin:0 auto 20px; display:flex; align-items:center; justify-content:center; }
+.incoming-ring { position:absolute; border-radius:50%; border:2px solid rgba(239,68,68,0.4); animation:ringRed 1.4s ease-out infinite; }
+.incoming-ring:nth-child(1){width:130px;height:130px;animation-delay:0s}
+.incoming-ring:nth-child(2){width:175px;height:175px;animation-delay:0.35s}
+.incoming-ring:nth-child(3){width:220px;height:220px;animation-delay:0.7s}
+@keyframes ringRed { 0%{opacity:0.8;transform:scale(0.9)} 100%{opacity:0;transform:scale(1.1)} }
+.incoming-avatar { width:110px; height:110px; border-radius:50%; background:linear-gradient(135deg,#ef4444,#dc2626); display:flex; align-items:center; justify-content:center; font-size:44px; font-weight:700; z-index:1; box-shadow:0 0 30px rgba(239,68,68,0.5); }
+.incoming-name { font-size:30px; font-weight:700; text-align:center; }
+.incoming-sub { font-size:15px; color:#9ca3af; text-align:center; margin-top:6px; }
+.incoming-actions { display:flex; gap:50px; align-items:center; }
+.incoming-action { display:flex; flex-direction:column; align-items:center; gap:10px; cursor:pointer; }
+.incoming-action .circle { width:72px; height:72px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:30px; transition:transform 0.15s; }
+.incoming-action:active .circle { transform:scale(0.9); }
+.decline-btn .circle { background:#ef4444; box-shadow:0 4px 20px rgba(239,68,68,0.5); }
+.accept-btn .circle { background:#22c55e; box-shadow:0 4px 20px rgba(34,197,94,0.5); }
+.incoming-action .label { font-size:13px; color:#9ca3af; }
 
-.incoming-label {
-  font-size:13px; color:var(--red); letter-spacing:2px;
-  text-transform:uppercase; text-align:center;
-  font-weight:700;
-  animation:blink 1s ease-in-out infinite;
-}
-@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.35} }
-
-.inc-ring-wrap {
-  position:relative; width:140px; height:140px; margin:0 auto;
-  display:flex; align-items:center; justify-content:center;
-}
-.inc-ring {
-  position:absolute; border-radius:50%;
-  border:2px solid rgba(239,68,68,0.3);
-  animation:ringRed 1.5s ease-out infinite;
-}
-.inc-ring:nth-child(1){width:140px;height:140px;animation-delay:0s}
-.inc-ring:nth-child(2){width:190px;height:190px;animation-delay:0.4s}
-.inc-ring:nth-child(3){width:240px;height:240px;animation-delay:0.8s}
-@keyframes ringRed { 0%{opacity:0.9;transform:scale(0.88)} 100%{opacity:0;transform:scale(1.12)} }
-
-.inc-avatar {
-  width:116px; height:116px; border-radius:50%;
-  background:linear-gradient(135deg, var(--red), var(--red2));
-  display:flex; align-items:center; justify-content:center;
-  font-size:46px; font-weight:800; z-index:1;
-  box-shadow:0 0 40px rgba(239,68,68,0.5);
-}
-.inc-name { font-size:30px; font-weight:800; text-align:center; margin-top:20px; letter-spacing:-0.5px; }
-.inc-sub { font-size:15px; color:#9ca3af; text-align:center; margin-top:6px; }
-
-.inc-actions { display:flex; gap:56px; align-items:center; }
-.inc-action { display:flex; flex-direction:column; align-items:center; gap:10px; cursor:pointer; user-select:none; }
-.inc-action .ia-circle {
-  width:76px; height:76px; border-radius:50%;
-  display:flex; align-items:center; justify-content:center;
-  font-size:32px; transition:transform 0.15s;
-}
-.inc-action:active .ia-circle { transform:scale(0.88); }
-.inc-action .ia-label { font-size:13px; color:#9ca3af; font-weight:600; }
-.ia-decline .ia-circle { background:var(--red);   box-shadow:0 4px 24px rgba(239,68,68,0.5); }
-.ia-accept  .ia-circle { background:var(--green); box-shadow:0 4px 24px rgba(34,197,94,0.5); }
-
-/* ══════════════════════
-   NOTIFICATION BANNER
-══════════════════════ */
-#notifBanner {
-  position:fixed; top:-110px; left:50%; transform:translateX(-50%);
-  background:#1a2332; border:1px solid var(--border2);
-  border-radius:18px; padding:14px 20px;
-  display:flex; align-items:center; gap:12px;
-  min-width:300px; max-width:92vw; z-index:400;
-  transition:top 0.45s cubic-bezier(0.34,1.56,0.64,1);
-  box-shadow:0 8px 40px rgba(0,0,0,0.6);
-  white-space:nowrap;
-}
+/* ── NOTIFICATION BANNER ── */
+#notifBanner { position:fixed; top:-100px; left:50%; transform:translateX(-50%); background:#1f2937; border:1px solid #374151; border-radius:16px; padding:14px 20px; display:flex; align-items:center; gap:12px; min-width:300px; z-index:400; transition:top 0.4s cubic-bezier(0.34,1.56,0.64,1); box-shadow:0 8px 32px rgba(0,0,0,0.5); white-space:nowrap; }
 #notifBanner.show { top:20px; }
-.nb-icon { font-size:26px; }
-.nb-title { font-weight:700; font-size:14px; }
-.nb-sub   { font-size:12px; color:#9ca3af; margin-top:2px; }
+#notifBanner .notif-icon { font-size:24px; }
+#notifBanner .notif-text .title { font-weight:700; font-size:14px; }
+#notifBanner .notif-text .sub { font-size:12px; color:#9ca3af; margin-top:2px; }
 
-/* ══ TOAST ══ */
-#toast {
-  position:fixed; bottom:36px; left:50%; transform:translateX(-50%);
-  background:#374151; border-radius:14px; padding:12px 22px;
-  font-size:14px; font-weight:600; z-index:600;
-  opacity:0; pointer-events:none;
-  transition:opacity 0.3s, transform 0.3s;
-  white-space:nowrap; max-width:92vw;
-}
+/* ── TOAST ── */
+#toast { position:fixed; bottom:30px; left:50%; transform:translateX(-50%); background:#374151; border-radius:12px; padding:12px 20px; font-size:14px; z-index:600; opacity:0; pointer-events:none; transition:opacity 0.3s; white-space:nowrap; }
 #toast.show { opacity:1; }
 
-/* ══ SPINNER ══ */
-.spin {
-  display:inline-block; width:16px; height:16px;
-  border:2px solid #ffffff44; border-top-color:#fff;
-  border-radius:50%; animation:spinR 0.7s linear infinite;
-  vertical-align:middle; margin-right:8px;
-}
-@keyframes spinR { to{transform:rotate(360deg)} }
-
-/* ══ CONNECTION STATUS ══ */
-#connStatus {
-  position:fixed; bottom:0; left:0; right:0;
-  background:#7c2d12; color:#fed7aa;
-  text-align:center; font-size:13px; font-weight:600;
-  padding:8px; z-index:300;
-  transform:translateY(100%); transition:transform 0.3s;
-}
-#connStatus.show { transform:translateY(0); }
+.spinner { display:inline-block; width:18px; height:18px; border:2px solid #ffffff44; border-top-color:#fff; border-radius:50%; animation:spin 0.7s linear infinite; vertical-align:middle; margin-right:8px; }
+@keyframes spin { to { transform:rotate(360deg); } }
 </style>
 </head>
 <body>
 
-<!-- TOAST -->
 <div id="toast"></div>
 
-<!-- NOTIFICATION BANNER -->
 <div id="notifBanner">
-  <div class="nb-icon">📞</div>
-  <div>
-    <div class="nb-title" id="nbTitle">Incoming Call</div>
-    <div class="nb-sub"   id="nbSub">Someone is calling</div>
+  <div class="notif-icon">📞</div>
+  <div class="notif-text">
+    <div class="title" id="notifTitle">Incoming Call</div>
+    <div class="sub" id="notifSub">Someone is calling you</div>
   </div>
 </div>
-
-<!-- DISCONNECTED BANNER -->
-<div id="connStatus">⚠️ Connection lost — reconnecting...</div>
 
 <!-- ═══ AUTH SCREEN ═══ -->
 <div id="authScreen">
@@ -476,33 +164,31 @@ body {
 
   <div class="auth-tabs">
     <button class="auth-tab active" onclick="switchAuthTab('login')">Login</button>
-    <button class="auth-tab"        onclick="switchAuthTab('register')">Register</button>
+    <button class="auth-tab" onclick="switchAuthTab('register')">Register</button>
   </div>
 
-  <!-- LOGIN -->
   <div class="auth-form active" id="loginForm">
-    <div class="input-wrap">
-      <input id="loginUser" placeholder="Username" autocomplete="username" />
+    <div class="input-group">
+      <input id="loginUsername" placeholder="Username" autocomplete="username" />
     </div>
-    <div class="input-wrap">
-      <input id="loginPass" type="password" placeholder="Password" autocomplete="current-password" />
+    <div class="input-group">
+      <input id="loginPassword" type="password" placeholder="Password" autocomplete="current-password" />
     </div>
-    <p class="auth-error" id="loginErr"></p>
+    <p class="auth-error" id="loginError"></p>
     <button class="auth-btn" id="loginBtn" onclick="doLogin()">Login</button>
   </div>
 
-  <!-- REGISTER -->
   <div class="auth-form" id="registerForm">
-    <div class="input-wrap">
-      <input id="regName" placeholder="Display name" maxlength="20" />
+    <div class="input-group">
+      <input id="regName" placeholder="Apna naam (display name)" maxlength="20" />
     </div>
-    <div class="input-wrap">
-      <input id="regUser" placeholder="Username (3+ chars)" maxlength="20" autocomplete="username" />
+    <div class="input-group">
+      <input id="regUsername" placeholder="Username (3+ chars)" maxlength="20" autocomplete="username" />
     </div>
-    <div class="input-wrap">
-      <input id="regPass" type="password" placeholder="Password (6+ chars)" autocomplete="new-password" />
+    <div class="input-group">
+      <input id="regPassword" type="password" placeholder="Password (6+ chars)" autocomplete="new-password" />
     </div>
-    <p class="auth-error" id="registerErr"></p>
+    <p class="auth-error" id="registerError"></p>
     <button class="auth-btn" id="registerBtn" onclick="doRegister()">Register</button>
   </div>
 </div>
@@ -511,18 +197,15 @@ body {
 <div id="mainApp">
   <div class="top-bar">
     <div class="top-bar-left">
-      <div class="profile-btn" id="profileBtn" onclick="togglePD()">
+      <div class="profile-btn" id="profileBtn" onclick="toggleProfileDropdown()">
         <div class="avatar" id="myAvatar">?</div>
         <div class="profile-dropdown" id="profileDropdown">
           <div class="pd-header">
             <div class="pd-name" id="pdName">Name</div>
-            <div class="pd-username" id="pdUname">@username</div>
+            <div class="pd-username" id="pdUsername">@username</div>
           </div>
           <div class="pd-item" onclick="enablePush()">
             <span class="pd-icon">🔔</span> Enable Notifications
-          </div>
-          <div class="pd-item" onclick="testAudio()">
-            <span class="pd-icon">🔊</span> Test Audio
           </div>
           <div class="pd-item danger" onclick="doLogout()">
             <span class="pd-icon">🚪</span> Logout
@@ -534,12 +217,12 @@ body {
         <div class="status-label"><span class="status-dot"></span>Online</div>
       </div>
     </div>
-    <button class="notif-btn" id="notifBtn" onclick="enablePush()" title="Enable Push Notifications">🔔</button>
+    <button class="notif-btn" id="notifToggleBtn" onclick="enablePush()" title="Enable Push Notifications">🔔</button>
   </div>
 
   <div class="tabs">
     <button class="tab active" onclick="switchTab('contacts')">Contacts</button>
-    <button class="tab"        onclick="switchTab('history')">History</button>
+    <button class="tab" onclick="switchTab('history')">History</button>
   </div>
 
   <div id="contactsTab" class="tab-content active">
@@ -558,26 +241,21 @@ body {
   <div style="text-align:center">
     <div class="call-avatar-ring">
       <div class="ring"></div><div class="ring"></div><div class="ring"></div>
-      <div class="call-avatar-big" id="callAvatar">?</div>
+      <div class="call-avatar-big" id="callAvatarBig">?</div>
     </div>
-    <div class="call-name"   id="callName">Unknown</div>
-    <div class="call-status" id="callStatus">Calling...</div>
-    <!-- Audio visualizer — connected hone pe dikhta hai -->
-    <div class="audio-vis" id="audioVis">
-      <div class="vis-bar"></div><div class="vis-bar"></div><div class="vis-bar"></div>
-      <div class="vis-bar"></div><div class="vis-bar"></div>
-    </div>
+    <div class="call-name" id="callNameBig">Unknown</div>
+    <div class="call-status-text" id="callStatusText">Calling...</div>
   </div>
-  <div class="call-timer" id="callTimer">00:00</div>
+  <div class="call-timer-big" id="callTimerBig">00:00</div>
   <div class="call-actions">
-    <button class="action-btn btn-mute" id="muteBtn" onclick="toggleMute()">
-      <div class="ab-circle">🎤</div><div class="ab-label">Mute</div>
+    <button class="action-btn mute-btn" id="muteBtn" onclick="toggleMute()">
+      <div class="circle">🎤</div><div class="label">Mute</div>
     </button>
-    <button class="action-btn btn-end" onclick="endCall()">
-      <div class="ab-circle">📵</div><div class="ab-label">End</div>
+    <button class="action-btn end-call-big" onclick="endCall()">
+      <div class="circle">📵</div><div class="label">End</div>
     </button>
-    <button class="action-btn btn-spk" id="speakerBtn" onclick="toggleSpeaker()">
-      <div class="ab-circle">🔊</div><div class="ab-label">Speaker</div>
+    <button class="action-btn speaker-btn" id="speakerBtn" onclick="toggleSpeaker()">
+      <div class="circle">🔊</div><div class="label">Speaker</div>
     </button>
   </div>
 </div>
@@ -586,977 +264,697 @@ body {
 <div id="incomingOverlay">
   <div style="text-align:center">
     <div class="incoming-label">📞 Incoming Call</div>
-    <div class="inc-ring-wrap">
-      <div class="inc-ring"></div><div class="inc-ring"></div><div class="inc-ring"></div>
-      <div class="inc-avatar" id="incAvatar">?</div>
+    <div class="incoming-avatar-wrap">
+      <div class="incoming-ring"></div><div class="incoming-ring"></div><div class="incoming-ring"></div>
+      <div class="incoming-avatar" id="incomingAvatar">?</div>
     </div>
-    <div class="inc-name" id="incName">Unknown</div>
-    <div class="inc-sub">VoiceConnect</div>
+    <div class="incoming-name" id="incomingName">Unknown</div>
+    <div class="incoming-sub">VoiceConnect Call</div>
   </div>
-  <div class="inc-actions">
-    <div class="inc-action ia-decline" onclick="rejectCall()">
-      <div class="ia-circle">📵</div><div class="ia-label">Decline</div>
+  <div class="incoming-actions">
+    <div class="incoming-action decline-btn" onclick="rejectCall()">
+      <div class="circle">📵</div><div class="label">Decline</div>
     </div>
-    <div class="inc-action ia-accept" onclick="acceptCall()">
-      <div class="ia-circle">📞</div><div class="ia-label">Accept</div>
+    <div class="incoming-action accept-btn" onclick="acceptCall()">
+      <div class="circle">📞</div><div class="label">Accept</div>
     </div>
   </div>
 </div>
 
-<!-- Hidden audio element — remote audio play karta hai -->
 <audio id="remoteAudio" autoplay playsinline></audio>
 
 <script src="/socket.io/socket.io.js"></script>
 <script>
-// ════════════════════════════════════════════════════
+// ════════════════════════════════
 //  AUDIO ENGINE
-//  Ringtone, dial tone, connect/end sounds
-// ════════════════════════════════════════════════════
+// ════════════════════════════════
 let audioCtx;
 function getCtx() {
-  if (!audioCtx || audioCtx.state === 'closed') {
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  }
-  // Resume if suspended (browser policy)
-  if (audioCtx.state === 'suspended') audioCtx.resume();
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   return audioCtx;
 }
-
-// ─── Ringtone (incoming) ─────────────────────────────
 let ringInterval = null, ringNodes = [];
 function playRingtone() {
   stopRingtone();
-  function oneRing() {
+  function doRing() {
     const ctx = getCtx();
-    [[0,0.45],[0.55,1.0]].forEach(([start, end]) => {
-      const osc  = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.frequency.setValueAtTime(520, ctx.currentTime + start);
-      osc.frequency.setValueAtTime(460, ctx.currentTime + start + 0.22);
-      gain.gain.setValueAtTime(0.45, ctx.currentTime + start);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + end);
-      osc.start(ctx.currentTime + start);
-      osc.stop(ctx.currentTime + end);
+    [[0,0.4],[0.5,0.9]].forEach(([s,e]) => {
+      const osc = ctx.createOscillator(), gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.frequency.setValueAtTime(480, ctx.currentTime+s);
+      osc.frequency.setValueAtTime(440, ctx.currentTime+s+0.2);
+      gain.gain.setValueAtTime(0.4, ctx.currentTime+s);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime+e);
+      osc.start(ctx.currentTime+s); osc.stop(ctx.currentTime+e);
       ringNodes.push(osc);
     });
   }
-  oneRing();
-  ringInterval = setInterval(oneRing, 2200);
+  doRing(); ringInterval = setInterval(doRing, 2000);
 }
-function stopRingtone() {
-  clearInterval(ringInterval); ringInterval = null;
-  ringNodes.forEach(n => { try { n.stop(); } catch(e) {} });
-  ringNodes = [];
-}
-
-// ─── Dial tone (outgoing) ────────────────────────────
+function stopRingtone() { clearInterval(ringInterval); ringInterval=null; ringNodes.forEach(n=>{try{n.stop()}catch(e){}}); ringNodes=[]; }
 let dialInterval = null;
 function playDialTone() {
   stopDialTone();
   function beep() {
-    const ctx = getCtx();
-    const osc  = ctx.createOscillator();
-    const gain = ctx.createGain();
+    const ctx = getCtx(), osc = ctx.createOscillator(), gain = ctx.createGain();
     osc.connect(gain); gain.connect(ctx.destination);
     osc.frequency.value = 440;
     gain.gain.setValueAtTime(0.15, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.45);
-    osc.start(ctx.currentTime);
-    osc.stop(ctx.currentTime + 0.5);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime+0.4);
+    osc.start(ctx.currentTime); osc.stop(ctx.currentTime+0.4);
   }
-  beep();
-  dialInterval = setInterval(beep, 2600);
+  beep(); dialInterval = setInterval(beep, 2500);
 }
-function stopDialTone() {
-  clearInterval(dialInterval); dialInterval = null;
-}
-
-// ─── Connect / End sounds ────────────────────────────
+function stopDialTone() { clearInterval(dialInterval); dialInterval=null; }
 function playConnectSound() {
   const ctx = getCtx();
-  [523, 659, 784].forEach((freq, i) => {
+  [523,659,784].forEach((freq,i) => {
     const osc = ctx.createOscillator(), gain = ctx.createGain();
     osc.connect(gain); gain.connect(ctx.destination);
     osc.frequency.value = freq;
-    gain.gain.setValueAtTime(0.28, ctx.currentTime + i * 0.13);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.13 + 0.3);
-    osc.start(ctx.currentTime + i * 0.13);
-    osc.stop(ctx.currentTime  + i * 0.13 + 0.35);
+    gain.gain.setValueAtTime(0.3, ctx.currentTime+i*0.12);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime+i*0.12+0.3);
+    osc.start(ctx.currentTime+i*0.12); osc.stop(ctx.currentTime+i*0.12+0.4);
   });
 }
 function playEndSound() {
   const ctx = getCtx();
-  [784, 523].forEach((freq, i) => {
+  [784,523].forEach((freq,i) => {
     const osc = ctx.createOscillator(), gain = ctx.createGain();
     osc.connect(gain); gain.connect(ctx.destination);
     osc.frequency.value = freq;
-    gain.gain.setValueAtTime(0.2, ctx.currentTime + i * 0.16);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.16 + 0.28);
-    osc.start(ctx.currentTime + i * 0.16);
-    osc.stop(ctx.currentTime  + i * 0.16 + 0.32);
+    gain.gain.setValueAtTime(0.2, ctx.currentTime+i*0.15);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime+i*0.15+0.25);
+    osc.start(ctx.currentTime+i*0.15); osc.stop(ctx.currentTime+i*0.15+0.3);
   });
 }
 
-// Test audio — user can verify speaker/Bluetooth working
-function testAudio() {
-  document.getElementById('profileDropdown').classList.remove('show');
-  playConnectSound();
-  showToast('🔊 Audio test — sun sakte ho?');
-}
-
-// ════════════════════════════════════════════════════
-//  BLUETOOTH / AUDIO OUTPUT ROUTING
-//  Web Audio API automatically routes through default
-//  audio output (Bluetooth headset, speaker, earpiece)
-//  setSinkId() se specific device select kar sakte ho
-// ════════════════════════════════════════════════════
-let usingSpeaker = false;
-
-async function toggleSpeaker() {
-  const btn = document.getElementById('speakerBtn');
-  const circle = btn.querySelector('.ab-circle');
-  const label  = btn.querySelector('.ab-label');
-  const audio  = document.getElementById('remoteAudio');
-
-  usingSpeaker = !usingSpeaker;
-
-  // setSinkId API — modern browsers support karte hain
-  if ('setSinkId' in audio) {
-    try {
-      if (usingSpeaker) {
-        // Default speaker
-        await audio.setSinkId('default');
-        circle.textContent = '🔈';
-        label.textContent  = 'Earpiece';
-      } else {
-        // Earpiece ('' = default communication device)
-        await audio.setSinkId('');
-        circle.textContent = '🔊';
-        label.textContent  = 'Speaker';
-      }
-    } catch (e) {
-      showToast('Audio output change failed — Bluetooth try karo');
-    }
-  } else {
-    // setSinkId supported nahi — just toggle UI
-    circle.textContent = usingSpeaker ? '🔈' : '🔊';
-    label.textContent  = usingSpeaker ? 'Earpiece' : 'Speaker';
-  }
-}
-
-// ════════════════════════════════════════════════════
+// ════════════════════════════════
 //  APP STATE
-// ════════════════════════════════════════════════════
+// ════════════════════════════════
 const socket = io({
-  reconnection:         true,
-  reconnectionDelay:    1000,
+  reconnection: true,
+  reconnectionDelay: 1000,
   reconnectionAttempts: Infinity,
-  timeout:              10000,
 });
 
-let localStream       = null;
-let peerConnection    = null;
-let currentCallSockId = null;
-let currentCallName   = null;
-let incomingOffer     = null;
-let incomingCallerName= null;
-let incomingFromSock  = null;
-let callStartTime     = null;
-let timerInterval     = null;
-let isMuted           = false;
-let pushEnabled       = false;
+let localStream, peerConnection;
+let currentCallSocketId, currentCallName, currentUserId;
+let incomingOffer, incomingCallerName, incomingFromSocket;
+let callStartTime, timerInterval;
+let isMuted = false;
 let myUserId, myName, myUsername, authToken;
+let pushEnabled = false;
 
-// ICE servers (STUN + public TURN fallback)
 const servers = {
   iceServers: [
-    { urls: 'stun:stun.l.google.com:19302' },
-    { urls: 'stun:stun1.l.google.com:19302' },
-    { urls: 'stun:stun2.l.google.com:19302' },
+    { urls: "stun:stun.l.google.com:19302" },
+    { urls: "stun:stun1.l.google.com:19302" }
   ]
 };
 
-// ════════════════════════════════════════════════════
+// ════════════════════════════════
 //  TOAST
-// ════════════════════════════════════════════════════
-let toastTimer;
-function showToast(msg, dur=3200) {
-  const el = document.getElementById('toast');
-  el.textContent = msg;
-  el.classList.add('show');
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => el.classList.remove('show'), dur);
+// ════════════════════════════════
+function showToast(msg, duration=3000) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  setTimeout(() => t.classList.remove("show"), duration);
 }
 
-// ════════════════════════════════════════════════════
-//  NOTIFICATION BANNER
-// ════════════════════════════════════════════════════
-let bannerTimer;
-function showBanner(title, sub, dur=5500) {
-  document.getElementById('nbTitle').textContent = title;
-  document.getElementById('nbSub').textContent   = sub;
-  const b = document.getElementById('notifBanner');
-  b.classList.add('show');
-  clearTimeout(bannerTimer);
-  bannerTimer = setTimeout(() => b.classList.remove('show'), dur);
-}
-
-// ════════════════════════════════════════════════════
+// ════════════════════════════════
 //  AUTH TAB SWITCH
-// ════════════════════════════════════════════════════
+// ════════════════════════════════
 function switchAuthTab(tab) {
-  document.querySelectorAll('.auth-tab').forEach((el, i) => {
-    el.classList.toggle('active', ['login','register'][i] === tab);
+  document.querySelectorAll(".auth-tab").forEach((el, i) => {
+    el.classList.toggle("active", ["login","register"][i] === tab);
   });
-  document.getElementById('loginForm').classList.toggle('active', tab === 'login');
-  document.getElementById('registerForm').classList.toggle('active', tab === 'register');
+  document.getElementById("loginForm").classList.toggle("active", tab==="login");
+  document.getElementById("registerForm").classList.toggle("active", tab==="register");
 }
+
+// ════════════════════════════════
+//  AUTO-LOGIN ON LOAD
+// ════════════════════════════════
+window.addEventListener("load", async () => {
+  // Service Worker register karo
+  if ("serviceWorker" in navigator) {
+    try {
+      const reg = await navigator.serviceWorker.register("/sw.js");
+      console.log("✅ SW registered:", reg.scope);
+    } catch(e) {
+      console.warn("SW registration failed:", e);
+    }
+  }
+
+  // Auto-login with saved token
+  const savedToken = localStorage.getItem("vc_token");
+  if (savedToken) {
+    try {
+      const res = await fetch("/api/me", {
+        headers: { "Authorization": "Bearer " + savedToken }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        authToken = savedToken;
+        myUserId = data.userId;
+        myName = data.name;
+        myUsername = data.username;
+        await enterApp();
+        return;
+      }
+    } catch(e) {}
+    localStorage.removeItem("vc_token");
+  }
+});
 
 // Enter key support
-document.addEventListener('keydown', e => {
-  if (e.key !== 'Enter') return;
-  if (document.getElementById('registerForm').classList.contains('active')) doRegister();
+document.addEventListener("keydown", e => {
+  if (e.key !== "Enter") return;
+  if (document.getElementById("registerForm").classList.contains("active")) doRegister();
   else doLogin();
 });
 
-// ════════════════════════════════════════════════════
-//  AUTO-LOGIN — localStorage token se instant login
-//  Token JWT hai, decode karke expiry check karo
-// ════════════════════════════════════════════════════
-window.addEventListener('load', async () => {
-  // 1. Service Worker register karo
-  if ('serviceWorker' in navigator) {
-    try {
-      const reg = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
-      console.log('✅ SW registered:', reg.scope);
-
-      // SW se messages sun (notification actions)
-      navigator.serviceWorker.addEventListener('message', handleSWMessage);
-
-      // SW update check
-      reg.addEventListener('updatefound', () => {
-        const nw = reg.installing;
-        nw.addEventListener('statechange', () => {
-          if (nw.state === 'installed' && navigator.serviceWorker.controller) {
-            nw.postMessage({ type: 'skip-waiting' });
-          }
-        });
-      });
-    } catch(e) {
-      console.warn('SW registration failed:', e);
-    }
-  }
-
-  // 2. Saved token se auto-login (FAST — no loading screen)
-  const saved = localStorage.getItem('vc_token');
-  if (saved) {
-    // Pehle token validate karo (expiry check)
-    try {
-      const payload = JSON.parse(atob(saved.split('.')[1]));
-      if (payload.exp && Date.now() / 1000 > payload.exp) {
-        // Token expired
-        localStorage.removeItem('vc_token');
-      } else {
-        // Token valid lag raha hai — server se verify karo
-        const res = await fetch('/api/me', {
-          headers: { 'Authorization': 'Bearer ' + saved }
-        });
-        if (res.ok) {
-          const data = await res.json();
-          authToken  = saved;
-          myUserId   = data.userId;
-          myName     = data.name;
-          myUsername = data.username;
-          await enterApp();
-          return;
-        }
-        localStorage.removeItem('vc_token');
-      }
-    } catch(e) {
-      localStorage.removeItem('vc_token');
-    }
-  }
-});
-
-// ════════════════════════════════════════════════════
-//  SERVICE WORKER MESSAGE HANDLER
-//  Notification actions (accept/decline) handle karo
-// ════════════════════════════════════════════════════
-function handleSWMessage(event) {
-  const { type, action, caller, notifType } = event.data || {};
-
-  if (type === 'notification-action') {
-    if (action === 'accept' && incomingOffer) {
-      // User ne notification se accept kiya
-      acceptCall();
-    } else if (action === 'decline' && incomingFromSock) {
-      rejectCall();
-    }
-  }
-
-  if (type === 'push-in-app') {
-    // App open hai, push directly received
-    const d = event.data.data || {};
-    showBanner(`📞 ${d.caller || 'Someone'} calling...`, d.body || 'Incoming call');
-  }
-}
-
-// ════════════════════════════════════════════════════
+// ════════════════════════════════
 //  REGISTER
-// ════════════════════════════════════════════════════
+// ════════════════════════════════
 async function doRegister() {
-  const name     = document.getElementById('regName').value.trim();
-  const username = document.getElementById('regUser').value.trim();
-  const password = document.getElementById('regPass').value;
-  const errEl    = document.getElementById('registerErr');
-  const btn      = document.getElementById('registerBtn');
+  const name = document.getElementById("regName").value.trim();
+  const username = document.getElementById("regUsername").value.trim();
+  const password = document.getElementById("regPassword").value;
+  const errEl = document.getElementById("registerError");
+  const btn = document.getElementById("registerBtn");
 
-  errEl.textContent = '';
-  if (!name || !username || !password) { errEl.textContent = 'Sab fields bharo'; return; }
-  if (username.length < 3) { errEl.textContent = 'Username 3+ chars hona chahiye'; return; }
-  if (password.length < 6) { errEl.textContent = 'Password 6+ chars hona chahiye'; return; }
+  errEl.textContent = "";
+  if (!name || !username || !password) { errEl.textContent = "Sab fields bharo"; return; }
 
   btn.disabled = true;
-  btn.innerHTML = '<span class="spin"></span>Registering...';
+  btn.innerHTML = '<span class="spinner"></span>Registering...';
 
   try {
-    const res  = await fetch('/api/register', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+    const res = await fetch("/api/register", {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
       body: JSON.stringify({ name, username, password })
     });
     const data = await res.json();
-    if (!res.ok) { errEl.textContent = data.error; btn.disabled=false; btn.textContent='Register'; return; }
+    if (!res.ok) { errEl.textContent = data.error; btn.disabled=false; btn.textContent="Register"; return; }
 
-    authToken  = data.token;
-    myUserId   = data.userId;
-    myName     = data.name;
+    authToken = data.token;
+    myUserId = data.userId;
+    myName = data.name;
     myUsername = data.username;
-    localStorage.setItem('vc_token', authToken);
+    localStorage.setItem("vc_token", authToken);
     await enterApp();
   } catch(e) {
-    errEl.textContent = 'Network error — dobara try karo';
-    btn.disabled=false; btn.textContent='Register';
+    errEl.textContent = "Network error";
+    btn.disabled=false; btn.textContent="Register";
   }
 }
 
-// ════════════════════════════════════════════════════
+// ════════════════════════════════
 //  LOGIN
-// ════════════════════════════════════════════════════
+// ════════════════════════════════
 async function doLogin() {
-  const username = document.getElementById('loginUser').value.trim();
-  const password = document.getElementById('loginPass').value;
-  const errEl    = document.getElementById('loginErr');
-  const btn      = document.getElementById('loginBtn');
+  const username = document.getElementById("loginUsername").value.trim();
+  const password = document.getElementById("loginPassword").value;
+  const errEl = document.getElementById("loginError");
+  const btn = document.getElementById("loginBtn");
 
-  errEl.textContent = '';
-  if (!username || !password) { errEl.textContent = 'Dono fields bharo'; return; }
+  errEl.textContent = "";
+  if (!username || !password) { errEl.textContent = "Username aur password dono chahiye"; return; }
 
   btn.disabled = true;
-  btn.innerHTML = '<span class="spin"></span>Logging in...';
+  btn.innerHTML = '<span class="spinner"></span>Logging in...';
 
   try {
-    const res  = await fetch('/api/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+    const res = await fetch("/api/login", {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
       body: JSON.stringify({ username, password })
     });
     const data = await res.json();
-    if (!res.ok) { errEl.textContent = data.error; btn.disabled=false; btn.textContent='Login'; return; }
+    if (!res.ok) { errEl.textContent = data.error; btn.disabled=false; btn.textContent="Login"; return; }
 
-    authToken  = data.token;
-    myUserId   = data.userId;
-    myName     = data.name;
+    authToken = data.token;
+    myUserId = data.userId;
+    myName = data.name;
     myUsername = data.username;
-    localStorage.setItem('vc_token', authToken);
+    localStorage.setItem("vc_token", authToken);
     await enterApp();
   } catch(e) {
-    errEl.textContent = 'Network error — dobara try karo';
-    btn.disabled=false; btn.textContent='Login';
+    errEl.textContent = "Network error";
+    btn.disabled=false; btn.textContent="Login";
   }
 }
 
-// ════════════════════════════════════════════════════
+// ════════════════════════════════
 //  ENTER APP
-// ════════════════════════════════════════════════════
+// ════════════════════════════════
 async function enterApp() {
-  // 1. Mic access — getUserMedia
-  //    Bluetooth headset automatically yahan se connect ho jaata hai
+  // Mic permission
   try {
-    localStream = await navigator.mediaDevices.getUserMedia({
-      audio: {
-        echoCancellation: true,      // echo band karo
-        noiseSuppression: true,      // noise band karo
-        autoGainControl:  true,      // volume auto adjust
-        // Bluetooth ke liye no sampleRate constraint
-      }
-    });
-    console.log('✅ Microphone access mila');
+    localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
   } catch(e) {
-    showToast('⚠️ Microphone access chahiye calls ke liye!');
-    console.warn('Mic access failed:', e);
+    showToast("⚠️ Microphone access chahiye calls ke liye!");
   }
 
-  // 2. UI update
-  const initial = myName ? myName[0].toUpperCase() : '?';
-  document.getElementById('myAvatar').textContent = initial;
-  document.getElementById('myName').textContent   = myName;
-  document.getElementById('pdName').textContent   = myName;
-  document.getElementById('pdUname').textContent  = '@' + myUsername;
+  // UI update
+  document.getElementById("myAvatar").textContent = myName[0].toUpperCase();
+  document.getElementById("myName").textContent = myName;
+  document.getElementById("pdName").textContent = myName;
+  document.getElementById("pdUsername").textContent = "@" + myUsername;
 
-  document.getElementById('authScreen').style.display = 'none';
-  document.getElementById('mainApp').style.display    = 'block';
+  document.getElementById("authScreen").style.display = "none";
+  document.getElementById("mainApp").style.display = "block";
 
-  // 3. Socket authenticate karo
-  socket.emit('socket-auth', authToken);
+  // Socket authenticate karo
+  socket.emit("socket-auth", authToken);
 
-  // 4. Push notification setup
-  await initPush();
+  // ════ PUSH NOTIFICATION SETUP ════
+  if ("Notification" in window && "serviceWorker" in navigator) {
+    if (Notification.permission === "granted") {
+      // Already allowed — silently subscribe
+      await setupPushSubscription();
+      markPushEnabled();
+    } else if (Notification.permission === "default") {
+      // Pehli baar — auto request karo (login ke baad ek hi baar popup aata hai)
+      try {
+        const perm = await Notification.requestPermission();
+        if (perm === "granted") {
+          await setupPushSubscription();
+          markPushEnabled();
+          showToast("✅ Notifications enable ho gayi! Ab calls aayengi chahe app band ho.");
+        }
+      } catch(e) {
+        console.warn("Notification permission request failed:", e);
+      }
+    }
+    // "denied" case mein kuch nahi karte — user ne khud band ki hai
+  }
 }
 
-// ════════════════════════════════════════════════════
+function markPushEnabled() {
+  pushEnabled = true;
+  document.getElementById("notifToggleBtn").classList.add("enabled");
+  document.getElementById("notifToggleBtn").title = "Notifications enabled ✓";
+}
+
+// ════════════════════════════════
 //  LOGOUT
-// ════════════════════════════════════════════════════
+// ════════════════════════════════
 async function doLogout() {
+  // Server pe push subscription clear karo
   if (authToken) {
     try {
-      await fetch('/api/push-subscribe', {
-        method: 'DELETE',
-        headers: { 'Authorization': 'Bearer ' + authToken }
+      await fetch("/api/push-subscribe", {
+        method: "DELETE",
+        headers: { "Authorization": "Bearer " + authToken }
       });
     } catch(e) {}
   }
-  // LocalStream band karo
-  if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
-  localStorage.removeItem('vc_token');
+  localStorage.removeItem("vc_token");
   authToken = myUserId = myName = myUsername = null;
   socket.disconnect();
   location.reload();
 }
 
-// ════════════════════════════════════════════════════
+// ════════════════════════════════
 //  PROFILE DROPDOWN
-// ════════════════════════════════════════════════════
-function togglePD() {
-  document.getElementById('profileDropdown').classList.toggle('show');
+// ════════════════════════════════
+function toggleProfileDropdown() {
+  document.getElementById("profileDropdown").classList.toggle("show");
 }
-document.addEventListener('click', e => {
-  const pb = document.getElementById('profileBtn');
+document.addEventListener("click", (e) => {
+  const pb = document.getElementById("profileBtn");
   if (pb && !pb.contains(e.target)) {
-    document.getElementById('profileDropdown').classList.remove('show');
+    document.getElementById("profileDropdown").classList.remove("show");
   }
 });
 
-// ════════════════════════════════════════════════════
-//  PUSH NOTIFICATIONS — background call support
-// ════════════════════════════════════════════════════
-async function initPush() {
-  if (!('Notification' in window) || !('serviceWorker' in navigator)) return;
-
-  if (Notification.permission === 'granted') {
-    await setupPushSub();
-    markPushOn();
-  } else if (Notification.permission === 'default') {
-    // First time — auto request
-    try {
-      const perm = await Notification.requestPermission();
-      if (perm === 'granted') {
-        await setupPushSub();
-        markPushOn();
-        showToast('✅ Notifications on! Ab call aane pe phone bajega.');
-      }
-    } catch(e) {}
-  }
-}
-
+// ════════════════════════════════
+//  WEB PUSH
+// ════════════════════════════════
 async function enablePush() {
-  document.getElementById('profileDropdown').classList.remove('show');
-  if (!('Notification' in window)) {
-    showToast('Aapka browser notifications support nahi karta');
+  document.getElementById("profileDropdown").classList.remove("show");
+  if (!("Notification" in window)) {
+    showToast("Aapka browser push notifications support nahi karta");
     return;
   }
-  if (Notification.permission === 'denied') {
-    showToast('Notifications blocked hain — browser settings se allow karo');
+  if (Notification.permission === "denied") {
+    showToast("Notifications blocked hain — browser settings mein jaake allow karo");
     return;
   }
-  const perm = await Notification.requestPermission();
-  if (perm !== 'granted') { showToast('Notification permission nahi mila'); return; }
-  await setupPushSub();
-  markPushOn();
-  showToast('✅ Push notifications enable! App band hone pe bhi call aayegi.');
+
+  const permission = await Notification.requestPermission();
+  if (permission !== "granted") {
+    showToast("Notification permission nahi mila");
+    return;
+  }
+
+  await setupPushSubscription();
+  markPushEnabled();
+  showToast("✅ Push notifications enable ho gayi! Ab calls aayengi chahe app band ho.");
 }
 
-function markPushOn() {
-  pushEnabled = true;
-  const btn = document.getElementById('notifBtn');
-  btn.classList.add('enabled');
-  btn.title = 'Notifications enabled ✓';
-}
-
-async function setupPushSub() {
+async function setupPushSubscription() {
   try {
-    const sw   = await navigator.serviceWorker.ready;
-    const vRes = await fetch('/api/vapid-key');
-    const { publicKey } = await vRes.json();
+    const sw = await navigator.serviceWorker.ready;
 
+    const vapidRes = await fetch("/api/vapid-key");
+    const { publicKey } = await vapidRes.json();
+
+    // Pehle existing subscription check karo
     let sub = await sw.pushManager.getSubscription();
+
+    // Agar subscription nahi hai ya purani hai to nayi banao
     if (!sub) {
       sub = await sw.pushManager.subscribe({
-        userVisibleOnly:      true,
-        applicationServerKey: urlB64ToUint8(publicKey)
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(publicKey)
       });
     }
 
-    const res = await fetch('/api/push-subscribe', {
-      method: 'POST',
+    // Server pe save karo
+    const res = await fetch("/api/push-subscribe", {
+      method: "POST",
       headers: {
-        'Content-Type':  'application/json',
-        'Authorization': 'Bearer ' + authToken
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + authToken
       },
       body: JSON.stringify({ subscription: sub })
     });
-    if (!res.ok) throw new Error('Save failed');
-    console.log('✅ Push subscription saved');
+
+    if (!res.ok) throw new Error("Save failed");
+    console.log("✅ Push subscription saved");
   } catch(e) {
-    console.warn('Push sub failed:', e);
+    console.warn("Push subscription failed:", e);
   }
 }
 
-function urlB64ToUint8(b64) {
-  const pad = '='.repeat((4 - b64.length % 4) % 4);
-  const b   = atob((b64 + pad).replace(/-/g,'+').replace(/_/g,'/'));
-  const out = new Uint8Array(b.length);
-  for (let i = 0; i < b.length; i++) out[i] = b.charCodeAt(i);
-  return out;
+function urlBase64ToUint8Array(base64String) {
+  const padding = "=".repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const rawData = atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; i++) outputArray[i] = rawData.charCodeAt(i);
+  return outputArray;
 }
 
-// ════════════════════════════════════════════════════
-//  SOCKET RECONNECT — re-authenticate
-// ════════════════════════════════════════════════════
-socket.on('connect', () => {
-  document.getElementById('connStatus').classList.remove('show');
-  if (authToken) socket.emit('socket-auth', authToken);
-});
-socket.on('disconnect', () => {
-  document.getElementById('connStatus').classList.add('show');
-});
-socket.on('connect_error', () => {
-  document.getElementById('connStatus').classList.add('show');
+// ════════════════════════════════
+//  SOCKET RECONNECT — re-auth karo
+// ════════════════════════════════
+socket.on("connect", () => {
+  // Reconnect pe dobara auth karo (doosri tab se wapas aane pe bhi)
+  if (authToken) {
+    socket.emit("socket-auth", authToken);
+  }
 });
 
-// ════════════════════════════════════════════════════
+// ════════════════════════════════
+//  IN-APP NOTIFICATION BANNER
+// ════════════════════════════════
+function showBanner(title, sub, duration=5000) {
+  document.getElementById("notifTitle").textContent = title;
+  document.getElementById("notifSub").textContent = sub;
+  const b = document.getElementById("notifBanner");
+  b.classList.add("show");
+  setTimeout(() => b.classList.remove("show"), duration);
+}
+
+// ════════════════════════════════
 //  TABS
-// ════════════════════════════════════════════════════
+// ════════════════════════════════
 function switchTab(tab) {
-  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', ['contacts','history'][i]===tab));
-  document.getElementById('contactsTab').classList.toggle('active', tab==='contacts');
-  document.getElementById('historyTab').classList.toggle('active', tab==='history');
+  document.querySelectorAll(".tab").forEach((t,i) => t.classList.toggle("active", ["contacts","history"][i]===tab));
+  document.getElementById("contactsTab").classList.toggle("active", tab==="contacts");
+  document.getElementById("historyTab").classList.toggle("active", tab==="history");
 }
 
-// ════════════════════════════════════════════════════
+// ════════════════════════════════
 //  USERS LIST
-// ════════════════════════════════════════════════════
-socket.on('users-list', users => {
-  const list   = document.getElementById('usersList');
-  list.innerHTML = '';
+// ════════════════════════════════
+socket.on("users-list", (users) => {
+  const list = document.getElementById("usersList");
+  list.innerHTML = "";
   const others = users.filter(u => u._id !== myUserId?.toString());
 
   if (!others.length) {
-    list.innerHTML = `<div class="empty-state"><div class="es-icon">👥</div><p>Koi aur user nahi hai abhi</p></div>`;
+    list.innerHTML = `<div class="empty-state"><div class="icon">👥</div><p>Koi aur user registered nahi hai abhi</p></div>`;
     return;
   }
 
   others.forEach(user => {
-    const col    = nameColor(user.name);
-    const onTxt  = user.online
-      ? `<div class="uc-online">● Online</div>`
-      : `<div class="uc-offline">● Offline</div>`;
+    const col = strColor(user.name);
+    const statusHtml = user.online
+      ? `<div class="online-txt">● Online</div>`
+      : `<div class="offline-txt">● Offline</div>`;
     list.innerHTML += `
       <div class="user-card">
         <div class="avatar" style="background:${col}">${user.name[0].toUpperCase()}</div>
-        <div class="uc-info">
-          <div class="uc-name">${esc(user.name)}</div>
-          <div class="uc-uname">@${esc(user.username)}</div>
-          ${onTxt}
+        <div class="user-card-info">
+          <div class="name">${esc(user.name)}</div>
+          <div class="uname">@${esc(user.username)}</div>
+          ${statusHtml}
         </div>
-        <button class="call-btn" onclick="startCall('${user._id}','${esc(user.name)}','${user.socketId||''}')">📞</button>
+        <button class="call-btn-small" onclick="callUser('${user._id}','${esc(user.name)}','${user.socketId||''}')">📞</button>
       </div>`;
   });
 });
 
-function nameColor(s) {
-  const c=['#7c3aed','#2563eb','#059669','#d97706','#db2777','#0891b2','#ea580c'];
-  let h=0; for(const ch of s) h=(h*31+ch.charCodeAt(0))%c.length;
+function strColor(s) {
+  const c=["#7c3aed","#2563eb","#059669","#d97706","#db2777","#0891b2"];
+  let h=0; for(let x of s) h=(h*31+x.charCodeAt(0))%c.length;
   return c[h];
 }
-function esc(s) {
-  if(!s) return '';
-  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
+function esc(s) { if(!s) return ''; return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
 
-// ════════════════════════════════════════════════════
-//  WEBRTC — PEER CONNECTION
-//  Audio dono taraf jaaye/aaye
-// ════════════════════════════════════════════════════
+// ════════════════════════════════
+//  PEER CONNECTION
+// ════════════════════════════════
 function createPeer() {
-  // Pehle purana connection band karo
-  if (peerConnection) {
-    peerConnection.close();
-    peerConnection = null;
-  }
-
   peerConnection = new RTCPeerConnection(servers);
-
-  // LOCAL AUDIO TRACKS ADD KARO — yahan se awaaz jaayegi
-  if (localStream) {
-    localStream.getTracks().forEach(track => {
-      peerConnection.addTrack(track, localStream);
-    });
-  } else {
-    console.warn('⚠️ localStream nahi hai — mic access tha nahi');
-  }
-
-  // REMOTE AUDIO — yahan se awaaz aayegi (Bluetooth/speaker/earpiece)
-  peerConnection.ontrack = event => {
-    console.log('🔊 Remote track received:', event.track.kind);
-    const audio = document.getElementById('remoteAudio');
-    if (event.streams && event.streams[0]) {
-      audio.srcObject = event.streams[0];
-    } else {
-      // Fallback — stream ke bina track
-      const ms = new MediaStream();
-      ms.addTrack(event.track);
-      audio.srcObject = ms;
-    }
-    // Play karo (autoplay blocked ho sakta hai)
-    audio.play().catch(e => {
-      console.warn('Audio play blocked:', e);
-      // User interaction pe play karo
-      document.addEventListener('click', () => audio.play(), { once: true });
-    });
+  if (localStream) localStream.getTracks().forEach(t => peerConnection.addTrack(t, localStream));
+  peerConnection.ontrack = e => {
+    document.getElementById("remoteAudio").srcObject = e.streams[0];
   };
-
-  // ICE candidates exchange
-  peerConnection.onicecandidate = event => {
-    if (event.candidate) {
-      socket.emit('ice-candidate', {
-        to:        currentCallSockId,
-        candidate: event.candidate
-      });
-    }
+  peerConnection.onicecandidate = e => {
+    if (e.candidate) socket.emit("ice-candidate", { to: currentCallSocketId, candidate: e.candidate });
   };
-
-  // ICE gathering state
-  peerConnection.onicegatheringstatechange = () => {
-    console.log('ICE gathering:', peerConnection?.iceGatheringState);
-  };
-
-  // Connection state change
   peerConnection.onconnectionstatechange = () => {
     const state = peerConnection?.connectionState;
-    console.log('Connection state:', state);
-    if (state === 'connected') {
-      document.getElementById('callStatus').textContent = 'Connected';
-      document.getElementById('audioVis').classList.add('active');
-    }
-    if (state === 'failed' || state === 'disconnected') {
-      showToast('⚠️ Connection issue — call end ho rahi hai');
+    if (state === "failed" || state === "disconnected") {
+      showToast("Connection issue — call end ho rahi hai");
       endCall();
     }
   };
-
-  // ICE connection state
-  peerConnection.oniceconnectionstatechange = () => {
-    console.log('ICE connection:', peerConnection?.iceConnectionState);
-  };
-
-  return peerConnection;
 }
 
-// ════════════════════════════════════════════════════
+// ════════════════════════════════
 //  OUTGOING CALL
-// ════════════════════════════════════════════════════
-async function startCall(userId, name, socketId) {
-  // Pehle se call chal rahi hai?
-  if (peerConnection) {
-    showToast('Ek call pehle se chal rahi hai');
-    return;
-  }
-
-  // AudioContext resume karo (browser policy)
-  getCtx();
-
-  currentCallSockId = socketId;
-  currentCallName   = name;
+// ════════════════════════════════
+async function callUser(userId, name, socketId) {
+  currentUserId = userId;
+  currentCallSocketId = socketId;
+  currentCallName = name;
 
   createPeer();
-
-  // Offer create karo
-  const offer = await peerConnection.createOffer({
-    offerToReceiveAudio: true,
-    offerToReceiveVideo: false
-  });
+  const offer = await peerConnection.createOffer();
   await peerConnection.setLocalDescription(offer);
 
-  socket.emit('call-user', {
-    toUserId:   userId,
-    offer,
-    callerName: myName
-  });
+  socket.emit("call-user", { toUserId: userId, offer, callerName: myName });
 
-  // UI update
-  document.getElementById('callAvatar').textContent = name[0].toUpperCase();
-  document.getElementById('callName').textContent   = name;
-  document.getElementById('callStatus').textContent = 'Calling...';
-  document.getElementById('callTimer').textContent  = '00:00';
-  document.getElementById('audioVis').classList.remove('active');
-  document.getElementById('callingOverlay').classList.add('show');
+  document.getElementById("callAvatarBig").textContent = name[0].toUpperCase();
+  document.getElementById("callNameBig").textContent = name;
+  document.getElementById("callStatusText").textContent = "Calling...";
+  document.getElementById("callTimerBig").textContent = "00:00";
+  document.getElementById("callingOverlay").classList.add("show");
   playDialTone();
 }
 
-// User offline — push gaya?
-socket.on('user-offline', ({ name, pushSent }) => {
+// User offline — push gaya ya nahi gaya
+socket.on("user-offline", ({ name, pushSent }) => {
   stopDialTone();
-  document.getElementById('callingOverlay').classList.remove('show');
+  document.getElementById("callingOverlay").classList.remove("show");
   if (peerConnection) { peerConnection.close(); peerConnection = null; }
 
   if (pushSent) {
-    showBanner(`📴 ${name} offline hai`, 'Push notification bhej di gayi unke phone pe 📲');
-    showToast(`📲 ${name} ko notification gayi — woh aane pe call kar sakte hain`);
+    showBanner(`📴 ${name} abhi offline hai`, "Push notification bhej di gayi hai unke phone pe");
+    showToast(`📲 ${name} ko notification bhej di — woh aane pe call kar sakte hain`);
   } else {
-    showBanner(`📴 ${name} offline hai`, 'Unke paas notifications bhi enable nahi hain');
-    showToast(`${name} offline hai`);
+    showBanner(`📴 ${name} offline hai`, "Unke paas notifications bhi enable nahi hain");
+    showToast(`${name} offline hai aur notifications bhi band hain`);
   }
 });
 
-// ════════════════════════════════════════════════════
+// ════════════════════════════════
 //  INCOMING CALL
-// ════════════════════════════════════════════════════
-socket.on('incoming-call', ({ from, offer, callerName }) => {
-  // Already in a call?
+// ════════════════════════════════
+socket.on("incoming-call", ({ from, offer, callerName }) => {
+  // Agar pehle se call chal rahi ho to reject karo
   if (peerConnection) {
-    socket.emit('reject-call', { to: from });
+    socket.emit("reject-call", { to: from });
     return;
   }
 
-  getCtx(); // AudioContext unlock karo
-
-  currentCallSockId  = from;
-  incomingOffer      = offer;
+  currentCallSocketId = from;
+  incomingOffer = offer;
   incomingCallerName = callerName;
-  incomingFromSock   = from;
+  incomingFromSocket = from;
 
-  document.getElementById('incAvatar').textContent = callerName[0].toUpperCase();
-  document.getElementById('incName').textContent   = callerName;
-  document.getElementById('incomingOverlay').classList.add('show');
+  document.getElementById("incomingAvatar").textContent = callerName[0].toUpperCase();
+  document.getElementById("incomingName").textContent = callerName;
+  document.getElementById("incomingOverlay").classList.add("show");
 
   playRingtone();
-  showBanner(`📞 ${callerName} calling...`, 'Accept ya Decline karo');
+  showBanner(`📞 ${callerName} calling...`, "Accept ya Decline karo");
 });
 
-// ─── ACCEPT CALL ─────────────────────────────────────
 async function acceptCall() {
   stopRingtone();
-  document.getElementById('incomingOverlay').classList.remove('show');
+  document.getElementById("incomingOverlay").classList.remove("show");
 
   createPeer();
-
-  // Remote description set karo (caller ki offer)
   await peerConnection.setRemoteDescription(new RTCSessionDescription(incomingOffer));
-
-  // Answer create karo
   const answer = await peerConnection.createAnswer();
   await peerConnection.setLocalDescription(answer);
+  socket.emit("answer-call", { to: incomingFromSocket, answer });
 
-  socket.emit('answer-call', {
-    to:     incomingFromSock,
-    answer
-  });
+  currentCallSocketId = incomingFromSocket;
+  currentCallName = incomingCallerName;
 
-  currentCallSockId = incomingFromSock;
-  currentCallName   = incomingCallerName;
-
-  document.getElementById('callAvatar').textContent = incomingCallerName[0].toUpperCase();
-  document.getElementById('callName').textContent   = incomingCallerName;
-  document.getElementById('callStatus').textContent = 'Connecting...';
-  document.getElementById('callTimer').textContent  = '00:00';
-  document.getElementById('audioVis').classList.remove('active');
-  document.getElementById('callingOverlay').classList.add('show');
+  document.getElementById("callAvatarBig").textContent = incomingCallerName[0].toUpperCase();
+  document.getElementById("callNameBig").textContent = incomingCallerName;
+  document.getElementById("callStatusText").textContent = "Connected";
+  document.getElementById("callTimerBig").textContent = "00:00";
+  document.getElementById("callingOverlay").classList.add("show");
 
   playConnectSound();
   startTimer();
 }
 
-// ─── REJECT CALL ─────────────────────────────────────
 function rejectCall() {
   stopRingtone();
-  socket.emit('reject-call', { to: incomingFromSock });
-  document.getElementById('incomingOverlay').classList.remove('show');
-  incomingOffer      = null;
-  incomingCallerName = null;
-  incomingFromSock   = null;
+  socket.emit("reject-call", { to: incomingFromSocket });
+  document.getElementById("incomingOverlay").classList.remove("show");
   playEndSound();
 }
 
-socket.on('call-rejected', () => {
+socket.on("call-rejected", () => {
   stopDialTone();
-  document.getElementById('callingOverlay').classList.remove('show');
+  document.getElementById("callingOverlay").classList.remove("show");
   if (peerConnection) { peerConnection.close(); peerConnection = null; }
   playEndSound();
-  showBanner('📵 Call Decline Hua', 'Doosre ne call decline ki');
-  showToast('Call decline ho gayi');
+  showBanner("Call Decline Ho Gaya", "Doosre ne call decline ki");
+  showToast("Call decline ho gayi");
 });
 
-// ─── CALL ANSWERED (caller side) ─────────────────────
-socket.on('call-answered', async answer => {
+socket.on("call-answered", async (answer) => {
   stopDialTone();
-  try {
-    await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
-  } catch(e) {
-    console.error('setRemoteDescription failed:', e);
-  }
-  document.getElementById('callStatus').textContent = 'Connecting...';
+  await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+  document.getElementById("callStatusText").textContent = "Connected";
   playConnectSound();
   startTimer();
 });
 
-// ─── ICE CANDIDATES ──────────────────────────────────
-socket.on('ice-candidate', async candidate => {
-  try {
-    if (peerConnection && peerConnection.remoteDescription) {
-      await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
-    }
-  } catch(e) {
-    console.warn('addIceCandidate failed:', e);
-  }
-});
-
-// ════════════════════════════════════════════════════
+// ════════════════════════════════
 //  IN-CALL CONTROLS
-// ════════════════════════════════════════════════════
+// ════════════════════════════════
 function toggleMute() {
   isMuted = !isMuted;
-  if (localStream) {
-    localStream.getAudioTracks().forEach(track => {
-      track.enabled = !isMuted;
-    });
-  }
-  const btn = document.getElementById('muteBtn');
-  btn.querySelector('.ab-circle').textContent = isMuted ? '🔇' : '🎤';
-  btn.querySelector('.ab-label').textContent  = isMuted ? 'Unmute' : 'Mute';
-  btn.classList.toggle('muted', isMuted);
-  showToast(isMuted ? '🔇 Muted' : '🎤 Unmuted');
+  if (localStream) localStream.getAudioTracks().forEach(t => t.enabled = !isMuted);
+  const btn = document.getElementById("muteBtn");
+  btn.querySelector(".circle").textContent = isMuted ? "🔇" : "🎤";
+  btn.querySelector(".label").textContent = isMuted ? "Unmute" : "Mute";
+  btn.classList.toggle("muted", isMuted);
+}
+
+function toggleSpeaker() {
+  const btn = document.getElementById("speakerBtn");
+  const lbl = btn.querySelector(".label");
+  lbl.textContent = lbl.textContent === "Speaker" ? "Earpiece" : "Speaker";
 }
 
 function endCall() {
-  socket.emit('end-call', { to: currentCallSockId });
-  saveCallHistory();
+  socket.emit("end-call", { to: currentCallSocketId });
+  saveHistory();
   closeCall();
 }
 
-socket.on('call-ended', () => {
-  saveCallHistory();
+socket.on("call-ended", () => {
+  saveHistory();
   closeCall();
-  showBanner('📵 Call Khatam', 'Doosre ne call end ki');
+  showBanner("Call Khatam", "Doosre ne call end ki");
 });
 
 function closeCall() {
   if (peerConnection) { peerConnection.close(); peerConnection = null; }
   clearInterval(timerInterval); timerInterval = null;
-
-  // Remote audio stop karo
-  const audio    = document.getElementById('remoteAudio');
-  audio.srcObject = null;
-
-  document.getElementById('callTimer').textContent  = '00:00';
-  document.getElementById('callingOverlay').classList.remove('show');
-  document.getElementById('incomingOverlay').classList.remove('show');
-  document.getElementById('audioVis').classList.remove('active');
-
+  document.getElementById("callTimerBig").textContent = "00:00";
+  document.getElementById("callingOverlay").classList.remove("show");
+  document.getElementById("incomingOverlay").classList.remove("show");
   stopRingtone(); stopDialTone();
-
-  // Mute reset
   isMuted = false;
   if (localStream) localStream.getAudioTracks().forEach(t => t.enabled = true);
-  const btn = document.getElementById('muteBtn');
-  btn.querySelector('.ab-circle').textContent = '🎤';
-  btn.querySelector('.ab-label').textContent  = 'Mute';
-  btn.classList.remove('muted');
-
-  // Speaker reset
-  usingSpeaker = false;
-  const spkBtn = document.getElementById('speakerBtn');
-  spkBtn.querySelector('.ab-circle').textContent = '🔊';
-  spkBtn.querySelector('.ab-label').textContent  = 'Speaker';
-
-  // Incoming state reset
-  incomingOffer      = null;
-  incomingCallerName = null;
-  incomingFromSock   = null;
-  currentCallSockId  = null;
-
+  const btn = document.getElementById("muteBtn");
+  btn.querySelector(".circle").textContent = "🎤";
+  btn.querySelector(".label").textContent = "Mute";
+  btn.classList.remove("muted");
   playEndSound();
 }
 
-// ════════════════════════════════════════════════════
-//  CALL TIMER
-// ════════════════════════════════════════════════════
+// ════════════════════════════════
+//  TIMER
+// ════════════════════════════════
 function startTimer() {
   callStartTime = Date.now();
-  clearInterval(timerInterval);
   timerInterval = setInterval(() => {
-    const elapsed = Math.floor((Date.now() - callStartTime) / 1000);
-    const m = String(Math.floor(elapsed / 60)).padStart(2, '0');
-    const s = String(elapsed % 60).padStart(2, '0');
-    document.getElementById('callTimer').textContent = `${m}:${s}`;
+    const d = Math.floor((Date.now()-callStartTime)/1000);
+    const m = String(Math.floor(d/60)).padStart(2,"0");
+    const s = String(d%60).padStart(2,"0");
+    document.getElementById("callTimerBig").textContent = `${m}:${s}`;
   }, 1000);
 }
 
-// ════════════════════════════════════════════════════
-//  CALL HISTORY
-// ════════════════════════════════════════════════════
-function saveCallHistory() {
-  const dur  = document.getElementById('callTimer').textContent;
-  if (dur === '00:00') return;  // 0s calls save nahi karenge
-  const other = document.getElementById('callName').textContent;
-  socket.emit('save-call-history', {
-    callerName:   myName,
-    receiverName: other || 'Unknown',
-    duration:     dur
+// ════════════════════════════════
+//  HISTORY
+// ════════════════════════════════
+function saveHistory() {
+  const dur = document.getElementById("callTimerBig").textContent;
+  if (dur === "00:00") return; // 0 second calls save mat karo
+  const other = document.getElementById("callNameBig").textContent;
+  socket.emit("save-call-history", {
+    callerName: myName,
+    receiverName: other || "Unknown",
+    duration: dur
   });
 }
 
-socket.on('call-history', history => {
-  const list = document.getElementById('historyList');
-  list.innerHTML = '';
+socket.on("call-history", (history) => {
+  const list = document.getElementById("historyList");
+  list.innerHTML = "";
   if (!history.length) {
-    list.innerHTML = `<div class="empty-state"><div class="es-icon">📋</div><p>Abhi koi call nahi hui</p></div>`;
+    list.innerHTML = `<div class="empty-state"><div class="icon">📋</div><p>Abhi koi call nahi hui</p></div>`;
     return;
   }
   history.forEach(item => {
-    const t = new Date(item.createdAt).toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
-    const d = new Date(item.createdAt).toLocaleDateString([], { day:'2-digit', month:'short' });
+    const t = new Date(item.createdAt).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});
+    const d = new Date(item.createdAt).toLocaleDateString([],{day:"2-digit",month:"short"});
     list.innerHTML += `
       <div class="history-item">
         <div class="history-icon">📞</div>
         <div class="history-info">
-          <div class="hi-name">${esc(item.callerName)} → ${esc(item.receiverName)}</div>
-          <div class="hi-dur">⏱ ${item.duration}</div>
-          <div class="hi-time">${d} • ${t}</div>
+          <div class="name">${esc(item.callerName)} → ${esc(item.receiverName)}</div>
+          <div class="dur">Duration: ${item.duration}</div>
+          <div class="time">${d} at ${t}</div>
         </div>
       </div>`;
   });
 });
 
-// ════════════════════════════════════════════════════
-//  VISIBILITY CHANGE — tab/app wapas aane pe re-auth
-// ════════════════════════════════════════════════════
-document.addEventListener('visibilitychange', () => {
-  if (!document.hidden && authToken && socket.connected) {
-    socket.emit('socket-auth', authToken);
-  }
+socket.on("ice-candidate", async (candidate) => {
+  try { if(peerConnection) await peerConnection.addIceCandidate(candidate); } catch(e) {}
 });
 </script>
 </body>
