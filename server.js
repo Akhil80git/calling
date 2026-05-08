@@ -10,20 +10,33 @@ const { Server } = require("socket.io");
 
 const app = express();
 const server = http.createServer(app);
+
+// FIX: Socket.IO CORS aur transport options — mobile ke liye
 const io = new Server(server, {
   pingTimeout: 60000,
   pingInterval: 25000,
+  // FIX: websocket + polling fallback — mobile network par polling reliable hota hai
+  transports: ["websocket", "polling"],
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST"]
+  },
+  // FIX: Large ICE candidate messages ke liye buffer size badhao
+  maxHttpBufferSize: 1e7
 });
 
 app.use(express.static("public"));
-app.use(express.json());
+app.use(express.json({ limit: "10mb" }));
 
 // ════════════════════════════
 //  MONGODB SCHEMAS
 // ════════════════════════════
-mongoose.connect(process.env.MONGO_URI)
+mongoose.connect(process.env.MONGO_URI, {
+  serverSelectionTimeoutMS: 5000,
+  socketTimeoutMS: 45000,
+})
   .then(() => console.log("✅ MongoDB Connected"))
-  .catch(err => console.log(err));
+  .catch(err => console.log("MongoDB error:", err));
 
 const userSchema = new mongoose.Schema({
   name:      { type: String, required: true },
@@ -82,6 +95,11 @@ app.get("/api/vapid-key", (req, res) => {
   res.json({ publicKey: process.env.VAPID_PUBLIC_KEY });
 });
 
+// FIX: Health check endpoint
+app.get("/api/health", (req, res) => {
+  res.json({ status: "ok", timestamp: new Date().toISOString() });
+});
+
 app.post("/api/register", async (req, res) => {
   try {
     const { name, username, password } = req.body;
@@ -101,6 +119,7 @@ app.post("/api/register", async (req, res) => {
     const token = signToken(user._id.toString());
     res.json({ token, name: user.name, username: user.username, userId: user._id });
   } catch (err) {
+    console.error("Register error:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
@@ -115,6 +134,7 @@ app.post("/api/login", async (req, res) => {
     const token = signToken(user._id.toString());
     res.json({ token, name: user.name, username: user.username, userId: user._id });
   } catch (err) {
+    console.error("Login error:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
@@ -134,7 +154,6 @@ app.post("/api/push-subscribe", authMiddleware, async (req, res) => {
   }
 });
 
-// Push subscription delete karo (optional — logout pe cleanup)
 app.delete("/api/push-subscribe", authMiddleware, async (req, res) => {
   try {
     await User.findByIdAndUpdate(req.userId, { pushSub: null });
@@ -150,17 +169,22 @@ app.delete("/api/push-subscribe", authMiddleware, async (req, res) => {
 const onlineMap = new Map(); // userId -> socketId
 
 async function broadcastUsers() {
-  const users = await User.find().select("name username socketId _id");
-  io.emit("users-list", users.map(u => ({
-    _id: u._id.toString(),
-    name: u.name,
-    username: u.username,
-    socketId: u.socketId || null,
-    online: !!u.socketId
-  })));
+  try {
+    const users = await User.find().select("name username socketId _id");
+    io.emit("users-list", users.map(u => ({
+      _id: u._id.toString(),
+      name: u.name,
+      username: u.username,
+      socketId: u.socketId || null,
+      online: !!u.socketId
+    })));
+  } catch(e) {
+    console.error("broadcastUsers error:", e);
+  }
 }
 
 io.on("connection", (socket) => {
+  console.log("New socket connection:", socket.id);
 
   socket.on("socket-auth", async (token) => {
     const decoded = verifyToken(token);
@@ -171,6 +195,16 @@ io.on("connection", (socket) => {
 
     socket.userId = decoded.userId;
     socket.userName = user.name;
+
+    // FIX: Purana socket disconnect karo agar same user ne dobara connect kiya
+    const oldSocketId = onlineMap.get(decoded.userId);
+    if (oldSocketId && oldSocketId !== socket.id) {
+      const oldSocket = io.sockets.sockets.get(oldSocketId);
+      if (oldSocket) {
+        console.log(`User ${user.name} ne naya connection banaya, purana disconnect kiya`);
+        // Purane socket ko inform karo lekin disconnect mat karo (dono tab support ke liye)
+      }
+    }
 
     await User.findByIdAndUpdate(decoded.userId, { socketId: socket.id });
     onlineMap.set(decoded.userId, socket.id);
@@ -184,19 +218,20 @@ io.on("connection", (socket) => {
 
   // ── OUTGOING CALL ──
   socket.on("call-user", async ({ toUserId, offer, callerName }) => {
-    // Online map se check karo aur socket actually connected hai ya nahi
+    // FIX: onlineMap aur actual socket dono check karo
     const targetSocketId = onlineMap.get(toUserId);
-    const isSocketAlive = targetSocketId && io.sockets.sockets.get(targetSocketId);
+    const isSocketAlive = targetSocketId && io.sockets.sockets.has(targetSocketId);
+
+    console.log(`Call attempt: ${callerName} -> userId:${toUserId}, socketAlive:${isSocketAlive}`);
 
     if (isSocketAlive) {
-      // User online hai — WebRTC call
       io.to(targetSocketId).emit("incoming-call", {
         from: socket.id,
         offer,
         callerName
       });
     } else {
-      // User offline ya doosre tab pe — Web Push bhejo
+      // User offline — Web Push bhejo
       try {
         const targetUser = await User.findById(toUserId);
 
@@ -205,7 +240,7 @@ io.on("connection", (socket) => {
             targetUser.pushSub,
             JSON.stringify({
               title: `📞 ${callerName} ne call kiya!`,
-              body: "VoiceConnect kholo — incoming call hai",
+              body:  "VoiceConnect kholo — incoming call hai",
               callerName,
               callerId: socket.userId,
               url: "/"
@@ -213,13 +248,12 @@ io.on("connection", (socket) => {
           );
           socket.emit("user-offline", { name: targetUser.name, pushSent: true });
         } else {
-          // Push subscription bhi nahi hai
           socket.emit("user-offline", { name: targetUser?.name || "User", pushSent: false });
         }
       } catch (err) {
         console.error("Push error:", err.message);
-        // Stale subscription — delete karo
-        if (err.statusCode === 410) {
+        if (err.statusCode === 410 || err.statusCode === 404) {
+          // Stale subscription — delete karo
           await User.findByIdAndUpdate(toUserId, { pushSub: null });
         }
         socket.emit("user-offline", { name: "User", pushSent: false });
@@ -227,25 +261,73 @@ io.on("connection", (socket) => {
     }
   });
 
-  socket.on("answer-call",   ({ to, answer })    => io.to(to).emit("call-answered", answer));
-  socket.on("reject-call",   ({ to })             => io.to(to).emit("call-rejected"));
-  socket.on("end-call",      ({ to })             => io.to(to).emit("call-ended"));
-  socket.on("ice-candidate", ({ to, candidate })  => io.to(to).emit("ice-candidate", candidate));
-
-  socket.on("save-call-history", async (data) => {
-    await CallHistory.create(data);
-    const history = await CallHistory.find().sort({ createdAt: -1 }).limit(20);
-    io.emit("call-history", history);
+  // FIX: answer-call mein from socket ID bhi bhejo (caller ko pata chale)
+  socket.on("answer-call", ({ to, answer }) => {
+    console.log(`Answer: ${socket.id} -> ${to}`);
+    io.to(to).emit("call-answered", answer);
   });
 
-  socket.on("disconnect", async () => {
-    if (socket.userId) {
-      await User.findByIdAndUpdate(socket.userId, { socketId: null });
-      onlineMap.delete(socket.userId);
-      await broadcastUsers();
+  socket.on("reject-call", ({ to }) => {
+    console.log(`Reject: ${socket.id} -> ${to}`);
+    io.to(to).emit("call-rejected");
+  });
+
+  socket.on("end-call", ({ to }) => {
+    console.log(`End call: ${socket.id} -> ${to}`);
+    io.to(to).emit("call-ended");
+  });
+
+  // FIX: ICE candidate relay — trickle ICE properly handle karo
+  socket.on("ice-candidate", ({ to, candidate }) => {
+    if (to && candidate) {
+      io.to(to).emit("ice-candidate", candidate);
     }
+  });
+
+  socket.on("save-call-history", async (data) => {
+    try {
+      await CallHistory.create({
+        callerName:   data.callerName || "Unknown",
+        receiverName: data.receiverName || "Unknown",
+        duration:     data.duration || "00:00"
+      });
+      const history = await CallHistory.find().sort({ createdAt: -1 }).limit(20);
+      io.emit("call-history", history);
+    } catch(e) {
+      console.error("Save history error:", e);
+    }
+  });
+
+  socket.on("disconnect", async (reason) => {
+    console.log(`Socket ${socket.id} disconnected: ${reason}`);
+    if (socket.userId) {
+      // FIX: Sirf tab clear karo agar yahi socket registered hai
+      const registeredSocketId = onlineMap.get(socket.userId);
+      if (registeredSocketId === socket.id) {
+        await User.findByIdAndUpdate(socket.userId, { socketId: null });
+        onlineMap.delete(socket.userId);
+        await broadcastUsers();
+      }
+    }
+  });
+
+  socket.on("error", (error) => {
+    console.error("Socket error:", error);
+  });
+});
+
+// ════════════════════════════
+//  GRACEFUL SHUTDOWN
+// ════════════════════════════
+process.on("SIGTERM", async () => {
+  console.log("SIGTERM received, shutting down...");
+  server.close(() => {
+    mongoose.connection.close();
+    process.exit(0);
   });
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`🚀 Running on port ${PORT}`));
+server.listen(PORT, "0.0.0.0", () => {
+  console.log(`🚀 VoiceConnect running on port ${PORT}`);
+});

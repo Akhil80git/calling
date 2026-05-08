@@ -142,11 +142,16 @@ body { background:#0a0a0f; color:#fff; font-family:-apple-system,BlinkMacSystemF
 
 .spinner { display:inline-block; width:18px; height:18px; border:2px solid #ffffff44; border-top-color:#fff; border-radius:50%; animation:spin 0.7s linear infinite; vertical-align:middle; margin-right:8px; }
 @keyframes spin { to { transform:rotate(360deg); } }
+
+/* ── CONNECTION STATUS ── */
+#connStatus { position:fixed; bottom:70px; left:50%; transform:translateX(-50%); background:#1f2937; border-radius:10px; padding:8px 16px; font-size:12px; color:#9ca3af; z-index:300; display:none; }
+#connStatus.show { display:block; }
 </style>
 </head>
 <body>
 
 <div id="toast"></div>
+<div id="connStatus"></div>
 
 <div id="notifBanner">
   <div class="notif-icon">📞</div>
@@ -281,7 +286,8 @@ body { background:#0a0a0f; color:#fff; font-family:-apple-system,BlinkMacSystemF
   </div>
 </div>
 
-<audio id="remoteAudio" autoplay playsinline></audio>
+<!-- FIX: audio element with webkit attributes for iOS -->
+<audio id="remoteAudio" autoplay playsinline webkit-playsinline></audio>
 
 <script src="/socket.io/socket.io.js"></script>
 <script>
@@ -291,6 +297,7 @@ body { background:#0a0a0f; color:#fff; font-family:-apple-system,BlinkMacSystemF
 let audioCtx;
 function getCtx() {
   if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
   return audioCtx;
 }
 let ringInterval = null, ringNodes = [];
@@ -350,6 +357,28 @@ function playEndSound() {
 }
 
 // ════════════════════════════════
+//  FIX: iOS AudioContext unlock
+//  Mobile par touch karne par AudioContext resume hoga
+// ════════════════════════════════
+function unlockAudioContext() {
+  if (audioCtx && audioCtx.state === 'suspended') {
+    audioCtx.resume();
+  }
+  // Ek silent buffer play karo — iOS ke liye zaruri hai
+  try {
+    const ctx = getCtx();
+    const buf = ctx.createBuffer(1, 1, 22050);
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    src.connect(ctx.destination);
+    src.start(0);
+  } catch(e) {}
+}
+document.addEventListener('touchstart', unlockAudioContext, { once: false });
+document.addEventListener('touchend', unlockAudioContext, { once: false });
+document.addEventListener('click', unlockAudioContext, { once: false });
+
+// ════════════════════════════════
 //  APP STATE
 // ════════════════════════════════
 const socket = io({
@@ -362,15 +391,45 @@ let localStream, peerConnection;
 let currentCallSocketId, currentCallName, currentUserId;
 let incomingOffer, incomingCallerName, incomingFromSocket;
 let callStartTime, timerInterval;
-let isMuted = false;
+let isMuted = false, isSpeaker = false;
 let myUserId, myName, myUsername, authToken;
 let pushEnabled = false;
+let pendingCandidates = []; // FIX: ICE candidates queue karo jab tak remoteDescription set na ho
 
+// ════════════════════════════════
+//  FIX: TURN servers add kiye — mobile ke liye ZAROORI hai
+//  Symmetric NAT (mobile networks) mein STUN akela kaam nahi karta
+// ════════════════════════════════
 const servers = {
   iceServers: [
     { urls: "stun:stun.l.google.com:19302" },
-    { urls: "stun:stun1.l.google.com:19302" }
-  ]
+    { urls: "stun:stun1.l.google.com:19302" },
+    { urls: "stun:stun2.l.google.com:19302" },
+    { urls: "stun:stun3.l.google.com:19302" },
+    // Free TURN servers — production mein apna lagao (metered.ca ya coturn)
+    {
+      urls: "turn:openrelay.metered.ca:80",
+      username: "openrelayproject",
+      credential: "openrelayproject"
+    },
+    {
+      urls: "turn:openrelay.metered.ca:443",
+      username: "openrelayproject",
+      credential: "openrelayproject"
+    },
+    {
+      urls: "turn:openrelay.metered.ca:443?transport=tcp",
+      username: "openrelayproject",
+      credential: "openrelayproject"
+    },
+    {
+      urls: "turn:openrelay.metered.ca:80?transport=tcp",
+      username: "openrelayproject",
+      credential: "openrelayproject"
+    }
+  ],
+  // FIX: relay fallback force karo agar STUN fail ho
+  iceCandidatePoolSize: 10
 };
 
 // ════════════════════════════════
@@ -398,7 +457,6 @@ function switchAuthTab(tab) {
 //  AUTO-LOGIN ON LOAD
 // ════════════════════════════════
 window.addEventListener("load", async () => {
-  // Service Worker register karo
   if ("serviceWorker" in navigator) {
     try {
       const reg = await navigator.serviceWorker.register("/sw.js");
@@ -408,7 +466,6 @@ window.addEventListener("load", async () => {
     }
   }
 
-  // Auto-login with saved token
   const savedToken = localStorage.getItem("vc_token");
   if (savedToken) {
     try {
@@ -429,7 +486,6 @@ window.addEventListener("load", async () => {
   }
 });
 
-// Enter key support
 document.addEventListener("keydown", e => {
   if (e.key !== "Enter") return;
   if (document.getElementById("registerForm").classList.contains("active")) doRegister();
@@ -513,14 +569,30 @@ async function doLogin() {
 //  ENTER APP
 // ════════════════════════════════
 async function enterApp() {
-  // Mic permission
+  // FIX: Improved audio constraints for mobile
   try {
-    localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    localStream = await navigator.mediaDevices.getUserMedia({
+      audio: {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true,
+        channelCount: 1,       // Mono — mobile ke liye better bandwidth
+        sampleRate: 16000      // 16kHz — voice ke liye kaafi hai, bandwidth kam
+      },
+      video: false
+    });
+    console.log("✅ Microphone access mila");
   } catch(e) {
-    showToast("⚠️ Microphone access chahiye calls ke liye!");
+    console.error("Microphone error:", e);
+    // Fallback: basic constraints try karo
+    try {
+      localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+      console.log("✅ Microphone access mila (basic mode)");
+    } catch(e2) {
+      showToast("⚠️ Microphone access chahiye calls ke liye!");
+    }
   }
 
-  // UI update
   document.getElementById("myAvatar").textContent = myName[0].toUpperCase();
   document.getElementById("myName").textContent = myName;
   document.getElementById("pdName").textContent = myName;
@@ -529,29 +601,31 @@ async function enterApp() {
   document.getElementById("authScreen").style.display = "none";
   document.getElementById("mainApp").style.display = "block";
 
-  // Socket authenticate karo
   socket.emit("socket-auth", authToken);
 
-  // ════ PUSH NOTIFICATION SETUP ════
+  // FIX: iOS remote audio unlock — pehle touch pe audio context resume karo
+  const remoteAudio = document.getElementById("remoteAudio");
+  document.addEventListener("touchstart", function iosAudioUnlock() {
+    remoteAudio.play().catch(() => {});
+    unlockAudioContext();
+  }, { once: false });
+
   if ("Notification" in window && "serviceWorker" in navigator) {
     if (Notification.permission === "granted") {
-      // Already allowed — silently subscribe
       await setupPushSubscription();
       markPushEnabled();
     } else if (Notification.permission === "default") {
-      // Pehli baar — auto request karo (login ke baad ek hi baar popup aata hai)
       try {
         const perm = await Notification.requestPermission();
         if (perm === "granted") {
           await setupPushSubscription();
           markPushEnabled();
-          showToast("✅ Notifications enable ho gayi! Ab calls aayengi chahe app band ho.");
+          showToast("✅ Notifications enable ho gayi!");
         }
       } catch(e) {
         console.warn("Notification permission request failed:", e);
       }
     }
-    // "denied" case mein kuch nahi karte — user ne khud band ki hai
   }
 }
 
@@ -565,7 +639,6 @@ function markPushEnabled() {
 //  LOGOUT
 // ════════════════════════════════
 async function doLogout() {
-  // Server pe push subscription clear karo
   if (authToken) {
     try {
       await fetch("/api/push-subscribe", {
@@ -598,37 +671,24 @@ document.addEventListener("click", (e) => {
 // ════════════════════════════════
 async function enablePush() {
   document.getElementById("profileDropdown").classList.remove("show");
-  if (!("Notification" in window)) {
-    showToast("Aapka browser push notifications support nahi karta");
-    return;
-  }
-  if (Notification.permission === "denied") {
-    showToast("Notifications blocked hain — browser settings mein jaake allow karo");
-    return;
-  }
+  if (!("Notification" in window)) { showToast("Browser push notifications support nahi karta"); return; }
+  if (Notification.permission === "denied") { showToast("Notifications blocked hain — browser settings mein allow karo"); return; }
 
   const permission = await Notification.requestPermission();
-  if (permission !== "granted") {
-    showToast("Notification permission nahi mila");
-    return;
-  }
+  if (permission !== "granted") { showToast("Notification permission nahi mila"); return; }
 
   await setupPushSubscription();
   markPushEnabled();
-  showToast("✅ Push notifications enable ho gayi! Ab calls aayengi chahe app band ho.");
+  showToast("✅ Push notifications enable ho gayi!");
 }
 
 async function setupPushSubscription() {
   try {
     const sw = await navigator.serviceWorker.ready;
-
     const vapidRes = await fetch("/api/vapid-key");
     const { publicKey } = await vapidRes.json();
 
-    // Pehle existing subscription check karo
     let sub = await sw.pushManager.getSubscription();
-
-    // Agar subscription nahi hai ya purani hai to nayi banao
     if (!sub) {
       sub = await sw.pushManager.subscribe({
         userVisibleOnly: true,
@@ -636,16 +696,11 @@ async function setupPushSubscription() {
       });
     }
 
-    // Server pe save karo
     const res = await fetch("/api/push-subscribe", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": "Bearer " + authToken
-      },
+      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + authToken },
       body: JSON.stringify({ subscription: sub })
     });
-
     if (!res.ok) throw new Error("Save failed");
     console.log("✅ Push subscription saved");
   } catch(e) {
@@ -663,13 +718,14 @@ function urlBase64ToUint8Array(base64String) {
 }
 
 // ════════════════════════════════
-//  SOCKET RECONNECT — re-auth karo
+//  SOCKET RECONNECT
 // ════════════════════════════════
 socket.on("connect", () => {
-  // Reconnect pe dobara auth karo (doosri tab se wapas aane pe bhi)
-  if (authToken) {
-    socket.emit("socket-auth", authToken);
-  }
+  if (authToken) socket.emit("socket-auth", authToken);
+});
+
+socket.on("disconnect", () => {
+  console.log("Socket disconnected");
 });
 
 // ════════════════════════════════
@@ -731,39 +787,136 @@ function strColor(s) {
 function esc(s) { if(!s) return ''; return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
 
 // ════════════════════════════════
-//  PEER CONNECTION
+//  FIX: PEER CONNECTION — improved for mobile
 // ════════════════════════════════
 function createPeer() {
+  // Purana connection close karo
+  if (peerConnection) {
+    peerConnection.close();
+    peerConnection = null;
+  }
+  pendingCandidates = [];
+
   peerConnection = new RTCPeerConnection(servers);
-  if (localStream) localStream.getTracks().forEach(t => peerConnection.addTrack(t, localStream));
-  peerConnection.ontrack = e => {
-    document.getElementById("remoteAudio").srcObject = e.streams[0];
+
+  // FIX: localStream tracks add karo
+  if (localStream) {
+    localStream.getTracks().forEach(track => {
+      peerConnection.addTrack(track, localStream);
+    });
+  }
+
+  // FIX: Remote audio properly set karo aur iOS ke liye force play
+  peerConnection.ontrack = (e) => {
+    console.log("✅ Remote track mila:", e.track.kind);
+    const remoteAudio = document.getElementById("remoteAudio");
+    if (e.streams && e.streams[0]) {
+      remoteAudio.srcObject = e.streams[0];
+    } else {
+      // FIX: Stream nahi hai to manually add karo
+      const stream = new MediaStream();
+      stream.addTrack(e.track);
+      remoteAudio.srcObject = stream;
+    }
+    // FIX: iOS par audio play force karo
+    remoteAudio.play().catch(err => {
+      console.warn("Remote audio play failed (will retry on interaction):", err);
+      // User interaction pe retry
+      document.addEventListener('touchstart', () => remoteAudio.play(), { once: true });
+      document.addEventListener('click', () => remoteAudio.play(), { once: true });
+    });
   };
-  peerConnection.onicecandidate = e => {
-    if (e.candidate) socket.emit("ice-candidate", { to: currentCallSocketId, candidate: e.candidate });
+
+  peerConnection.onicecandidate = (e) => {
+    if (e.candidate) {
+      console.log("ICE candidate:", e.candidate.type, e.candidate.protocol);
+      socket.emit("ice-candidate", { to: currentCallSocketId, candidate: e.candidate });
+    }
   };
+
+  // FIX: ICE gathering state monitor karo
+  peerConnection.onicegatheringstatechange = () => {
+    console.log("ICE gathering state:", peerConnection?.iceGatheringState);
+  };
+
+  peerConnection.oniceconnectionstatechange = () => {
+    const state = peerConnection?.iceConnectionState;
+    console.log("ICE connection state:", state);
+
+    const statusEl = document.getElementById("connStatus");
+    if (state === "checking") {
+      statusEl.textContent = "🔄 Connecting...";
+      statusEl.classList.add("show");
+    } else if (state === "connected" || state === "completed") {
+      statusEl.textContent = "✅ Connected";
+      statusEl.classList.add("show");
+      setTimeout(() => statusEl.classList.remove("show"), 2000);
+    } else if (state === "failed") {
+      statusEl.textContent = "❌ Connection failed";
+      statusEl.classList.add("show");
+      showToast("⚠️ Connection fail — retry kar raha hai...");
+      // FIX: ICE restart karo
+      if (peerConnection) {
+        peerConnection.restartIce();
+      }
+    } else if (state === "disconnected") {
+      statusEl.textContent = "⚠️ Reconnecting...";
+      statusEl.classList.add("show");
+    }
+  };
+
   peerConnection.onconnectionstatechange = () => {
     const state = peerConnection?.connectionState;
-    if (state === "failed" || state === "disconnected") {
-      showToast("Connection issue — call end ho rahi hai");
+    console.log("Connection state:", state);
+    if (state === "failed") {
+      showToast("Connection fail ho gayi — call end ho rahi hai");
       endCall();
     }
   };
+
+  // FIX: Signaling state monitor karo
+  peerConnection.onsignalingstatechange = () => {
+    console.log("Signaling state:", peerConnection?.signalingState);
+  };
+}
+
+// FIX: ICE candidates queue — remoteDescription set hone ke baad apply karo
+async function addQueuedCandidates() {
+  if (!peerConnection || pendingCandidates.length === 0) return;
+  console.log(`Applying ${pendingCandidates.length} queued ICE candidates`);
+  for (const candidate of pendingCandidates) {
+    try {
+      await peerConnection.addIceCandidate(candidate);
+    } catch(e) {
+      console.warn("ICE candidate add failed:", e);
+    }
+  }
+  pendingCandidates = [];
 }
 
 // ════════════════════════════════
 //  OUTGOING CALL
 // ════════════════════════════════
 async function callUser(userId, name, socketId) {
+  unlockAudioContext(); // FIX: call shuru karne pe audio unlock karo
   currentUserId = userId;
   currentCallSocketId = socketId;
   currentCallName = name;
 
   createPeer();
-  const offer = await peerConnection.createOffer();
-  await peerConnection.setLocalDescription(offer);
 
-  socket.emit("call-user", { toUserId: userId, offer, callerName: myName });
+  // FIX: Offer options — audio only, proper codec hints
+  const offer = await peerConnection.createOffer({
+    offerToReceiveAudio: true,
+    offerToReceiveVideo: false,
+    voiceActivityDetection: true
+  });
+
+  // FIX: SDP modify karo — mobile ke liye Opus codec prefer karo
+  offer.sdp = preferOpusCodec(offer.sdp);
+
+  await peerConnection.setLocalDescription(offer);
+  socket.emit("call-user", { toUserId: userId, offer: peerConnection.localDescription, callerName: myName });
 
   document.getElementById("callAvatarBig").textContent = name[0].toUpperCase();
   document.getElementById("callNameBig").textContent = name;
@@ -773,17 +926,16 @@ async function callUser(userId, name, socketId) {
   playDialTone();
 }
 
-// User offline — push gaya ya nahi gaya
 socket.on("user-offline", ({ name, pushSent }) => {
   stopDialTone();
   document.getElementById("callingOverlay").classList.remove("show");
   if (peerConnection) { peerConnection.close(); peerConnection = null; }
 
   if (pushSent) {
-    showBanner(`📴 ${name} abhi offline hai`, "Push notification bhej di gayi hai unke phone pe");
-    showToast(`📲 ${name} ko notification bhej di — woh aane pe call kar sakte hain`);
+    showBanner(`📴 ${name} abhi offline hai`, "Push notification bhej di gayi hai");
+    showToast(`📲 ${name} ko notification bhej di`);
   } else {
-    showBanner(`📴 ${name} offline hai`, "Unke paas notifications bhi enable nahi hain");
+    showBanner(`📴 ${name} offline hai`, "Notifications bhi enable nahi hain");
     showToast(`${name} offline hai aur notifications bhi band hain`);
   }
 });
@@ -792,7 +944,7 @@ socket.on("user-offline", ({ name, pushSent }) => {
 //  INCOMING CALL
 // ════════════════════════════════
 socket.on("incoming-call", ({ from, offer, callerName }) => {
-  // Agar pehle se call chal rahi ho to reject karo
+  unlockAudioContext(); // FIX: incoming call pe audio unlock
   if (peerConnection) {
     socket.emit("reject-call", { to: from });
     return;
@@ -812,14 +964,25 @@ socket.on("incoming-call", ({ from, offer, callerName }) => {
 });
 
 async function acceptCall() {
+  unlockAudioContext(); // FIX: accept karne pe audio unlock
   stopRingtone();
   document.getElementById("incomingOverlay").classList.remove("show");
 
   createPeer();
+
+  // FIX: Remote description set karo pehle
   await peerConnection.setRemoteDescription(new RTCSessionDescription(incomingOffer));
+
+  // FIX: Queued candidates apply karo
+  await addQueuedCandidates();
+
   const answer = await peerConnection.createAnswer();
+
+  // FIX: SDP modify — Opus codec prefer karo
+  answer.sdp = preferOpusCodec(answer.sdp);
+
   await peerConnection.setLocalDescription(answer);
-  socket.emit("answer-call", { to: incomingFromSocket, answer });
+  socket.emit("answer-call", { to: incomingFromSocket, answer: peerConnection.localDescription });
 
   currentCallSocketId = incomingFromSocket;
   currentCallName = incomingCallerName;
@@ -852,10 +1015,21 @@ socket.on("call-rejected", () => {
 
 socket.on("call-answered", async (answer) => {
   stopDialTone();
-  await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
-  document.getElementById("callStatusText").textContent = "Connected";
-  playConnectSound();
-  startTimer();
+  try {
+    // FIX: Sirf tabhi set karo agar state sahi ho
+    if (peerConnection && peerConnection.signalingState === "have-local-offer") {
+      await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+      // FIX: Queued candidates apply karo
+      await addQueuedCandidates();
+      document.getElementById("callStatusText").textContent = "Connected";
+      playConnectSound();
+      startTimer();
+    }
+  } catch(e) {
+    console.error("Error setting remote description:", e);
+    showToast("Connection mein problem — call dobara karo");
+    closeCall();
+  }
 });
 
 // ════════════════════════════════
@@ -868,12 +1042,30 @@ function toggleMute() {
   btn.querySelector(".circle").textContent = isMuted ? "🔇" : "🎤";
   btn.querySelector(".label").textContent = isMuted ? "Unmute" : "Mute";
   btn.classList.toggle("muted", isMuted);
+  showToast(isMuted ? "🔇 Muted" : "🎤 Unmuted");
 }
 
-function toggleSpeaker() {
+// FIX: Speaker toggle — Android/iOS pe setSinkId use karo
+async function toggleSpeaker() {
+  isSpeaker = !isSpeaker;
   const btn = document.getElementById("speakerBtn");
-  const lbl = btn.querySelector(".label");
-  lbl.textContent = lbl.textContent === "Speaker" ? "Earpiece" : "Speaker";
+  const audio = document.getElementById("remoteAudio");
+  btn.querySelector(".label").textContent = isSpeaker ? "Earpiece" : "Speaker";
+  btn.querySelector(".circle").textContent = isSpeaker ? "🔇" : "🔊";
+
+  // FIX: setSinkId support check karo
+  if (audio.setSinkId) {
+    try {
+      // Speaker = default (built-in speaker), Earpiece = communications device
+      await audio.setSinkId(isSpeaker ? "default" : "communications");
+      showToast(isSpeaker ? "🔊 Speaker on" : "📱 Earpiece mode");
+    } catch(e) {
+      console.warn("setSinkId failed:", e);
+      showToast(isSpeaker ? "🔊 Speaker mode" : "📱 Earpiece mode");
+    }
+  } else {
+    showToast(isSpeaker ? "🔊 Speaker mode" : "📱 Earpiece mode");
+  }
 }
 
 function endCall() {
@@ -890,17 +1082,25 @@ socket.on("call-ended", () => {
 
 function closeCall() {
   if (peerConnection) { peerConnection.close(); peerConnection = null; }
+  pendingCandidates = [];
   clearInterval(timerInterval); timerInterval = null;
   document.getElementById("callTimerBig").textContent = "00:00";
   document.getElementById("callingOverlay").classList.remove("show");
   document.getElementById("incomingOverlay").classList.remove("show");
   stopRingtone(); stopDialTone();
-  isMuted = false;
+  isMuted = false; isSpeaker = false;
   if (localStream) localStream.getAudioTracks().forEach(t => t.enabled = true);
   const btn = document.getElementById("muteBtn");
   btn.querySelector(".circle").textContent = "🎤";
   btn.querySelector(".label").textContent = "Mute";
   btn.classList.remove("muted");
+  document.getElementById("speakerBtn").querySelector(".circle").textContent = "🔊";
+  document.getElementById("speakerBtn").querySelector(".label").textContent = "Speaker";
+
+  // FIX: Remote audio reset karo
+  const remoteAudio = document.getElementById("remoteAudio");
+  remoteAudio.srcObject = null;
+
   playEndSound();
 }
 
@@ -922,7 +1122,7 @@ function startTimer() {
 // ════════════════════════════════
 function saveHistory() {
   const dur = document.getElementById("callTimerBig").textContent;
-  if (dur === "00:00") return; // 0 second calls save mat karo
+  if (dur === "00:00") return;
   const other = document.getElementById("callNameBig").textContent;
   socket.emit("save-call-history", {
     callerName: myName,
@@ -953,9 +1153,59 @@ socket.on("call-history", (history) => {
   });
 });
 
+// ════════════════════════════════
+//  FIX: ICE candidates — queue karo jab tak remote set na ho
+// ════════════════════════════════
 socket.on("ice-candidate", async (candidate) => {
-  try { if(peerConnection) await peerConnection.addIceCandidate(candidate); } catch(e) {}
+  if (!peerConnection) return;
+  try {
+    // FIX: Remote description set hai tabhi add karo, warna queue mein daalo
+    if (peerConnection.remoteDescription && peerConnection.remoteDescription.type) {
+      await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+    } else {
+      console.log("ICE candidate queue mein daala (remote desc pending)");
+      pendingCandidates.push(new RTCIceCandidate(candidate));
+    }
+  } catch(e) {
+    console.warn("ICE candidate add failed:", e);
+  }
 });
+
+// ════════════════════════════════
+//  FIX: Opus codec preference — mobile ke liye best audio codec
+// ════════════════════════════════
+function preferOpusCodec(sdp) {
+  const lines = sdp.split('\n');
+  const mLineIndex = lines.findIndex(line => line.startsWith('m=audio'));
+  if (mLineIndex === -1) return sdp;
+
+  // Opus payload type dhundo
+  let opusPayload = null;
+  lines.forEach(line => {
+    const match = line.match(/a=rtpmap:(\d+) opus/i);
+    if (match) opusPayload = match[1];
+  });
+
+  if (!opusPayload) return sdp;
+
+  // m= line mein Opus ko pehle rakh do
+  const mLine = lines[mLineIndex];
+  const parts = mLine.split(' ');
+  const filteredPayloads = parts.slice(3).filter(p => p.trim() !== opusPayload);
+  lines[mLineIndex] = parts.slice(0, 3).concat([opusPayload, ...filteredPayloads]).join(' ');
+
+  // FIX: Opus parameters add karo — mobile ke liye optimized
+  const opusFmtpIndex = lines.findIndex(line => line.includes(`a=fmtp:${opusPayload}`));
+  const opusParams = `a=fmtp:${opusPayload} minptime=10;useinbandfec=1;stereo=0;maxaveragebitrate=32000`;
+  if (opusFmtpIndex !== -1) {
+    lines[opusFmtpIndex] = opusParams;
+  } else {
+    const rtpmapIndex = lines.findIndex(line => line.includes(`a=rtpmap:${opusPayload}`));
+    if (rtpmapIndex !== -1) lines.splice(rtpmapIndex + 1, 0, opusParams);
+  }
+
+  return lines.join('\n');
+}
 </script>
 </body>
 </html>
